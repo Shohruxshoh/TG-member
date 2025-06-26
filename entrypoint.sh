@@ -6,6 +6,10 @@ python manage.py makemigrations --noinput
 echo "🔧 Migrate boshlandi..."
 python manage.py migrate --noinput
 
+echo "collectstatic file..."
+mkdir -p static
+python manage.py collectstatic --noinput
+
 echo "🧑‍💻 Superuser tekshirilmoqda..."
 python manage.py shell <<EOF
 import os
