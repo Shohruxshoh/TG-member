@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
@@ -24,13 +24,14 @@ class ServicePriceViewSet(viewsets.ModelViewSet):
     search_fields = ['category']
 
 
-class LinkViewSet(viewsets.ModelViewSet):
+class LinkViewSet(mixins.ListModelMixin,
+                  mixins.RetrieveModelMixin,
+                  mixins.UpdateModelMixin,
+                  mixins.DestroyModelMixin,
+                  viewsets.GenericViewSet):
     queryset = Link.objects.all().order_by('-created_at')
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = LinkSerializer
-
-    def perform_create(self, serializer):
-        serializer.save()
 
 
 class OrderWithLinksCreateView(APIView):
@@ -54,4 +55,3 @@ class OrderWithLinksCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
         return Response(result)
-
