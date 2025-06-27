@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from .models import Order
-from .serializers import OrderSerializer
+from .serializers import OrderSerializer, OrderDetailSerializer
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -23,6 +23,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Foydalanuvchi faqat o‘z buyurtmalarini ko‘radi
         return Order.objects.filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return OrderDetailSerializer
+        return OrderSerializer
 
     def perform_create(self, serializer):
         user = self.request.user

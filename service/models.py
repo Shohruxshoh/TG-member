@@ -1,5 +1,6 @@
 from django.db import models
 
+
 # Create your models here.
 
 class Country(models.Model):
@@ -25,6 +26,13 @@ class ServicePrice(models.Model):
     percent = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # agar percent > 0 bo‘lsa, narxni hisoblaymiz
+        if self.percent > 0 and self.price > 0:
+            discounted_price = self.price - (self.price * self.percent // 100)
+            self.price = discounted_price
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.country.name} - {self.category}"

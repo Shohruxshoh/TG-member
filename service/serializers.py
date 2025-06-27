@@ -28,30 +28,31 @@ class LinkSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 
-class LinkCreateSerializer(serializers.ModelSerializer):
-    service_price = serializers.PrimaryKeyRelatedField(queryset=ServicePrice.objects.all(), write_only=True)
-
-    class Meta:
-        model = Link
-        fields = ['link', 'service_price']  # order emas, faqat keraklilar
-        extra_kwargs = {
-            'link': {'required': True}
-        }
+class OrderWithLinksCreateSerializer(serializers.Serializer):
+    service_price = serializers.PrimaryKeyRelatedField(queryset=ServicePrice.objects.all())
+    links = serializers.ListField(
+        child=serializers.URLField(),  # yoki CharField(), agar URL bo'lmasa
+        allow_empty=False
+    )
 
     def create(self, validated_data):
-        request = self.context['request']
-        user = request.user
-        service_price = validated_data.pop('service_price')
-        print(service_price)
+        user = self.context['request'].user
+        service_price = validated_data['service_price']
+        links = validated_data['links']
 
         # Order yaratish
         order = Order.objects.create(
-            service_price=service_price,
             user=user,
+            service_price=service_price,
             price=service_price.price,
             status='PENDING',
         )
 
-        # Link yaratish
-        link = Link.objects.create(order=order, **validated_data)
-        return link
+        # Har bir link uchun Link obyekti yaratamiz
+        link_objs = [Link(order=order, link=link) for link in links]
+        Link.objects.bulk_create(link_objs)
+
+        return {
+            "order_id": order.id,
+            "links": links
+        }

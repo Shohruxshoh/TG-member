@@ -1,4 +1,7 @@
 from rest_framework import serializers
+
+from service.models import Link
+from service.serializers import LinkSerializer
 from .models import Order
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -8,3 +11,16 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
         read_only_fields = ['user', 'price', 'created_at', 'updated_at']
+
+class OrderDetailSerializer(serializers.ModelSerializer):
+    links = serializers.SerializerMethodField()
+    service_price = serializers.StringRelatedField()
+
+    class Meta:
+        model = Order
+        fields = ['id', 'service_price', 'status', 'price', 'created_at', 'links']
+
+    def get_links(self, obj):
+        links = Link.objects.filter(order=obj)
+        return LinkSerializer(links, many=True).data
+
