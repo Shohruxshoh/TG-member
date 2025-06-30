@@ -78,7 +78,7 @@ class PasswordResetEmailRequestSerializer(serializers.Serializer):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
-        reset_url = f"http://127.0.0.1:8000/api/users/reset-password/{uid}/{token}/"
+        reset_url = f"https://tgmember.pythonanywhere.com/api/users/reset-password/{uid}/{token}/"
 
         send_mail(
             subject="Parolni tiklash",
