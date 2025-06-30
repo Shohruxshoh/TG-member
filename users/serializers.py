@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
-from .models import User
+from .models import User, Balance
 from rest_framework import serializers
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -114,3 +114,27 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user = self.validated_data['user']
         user.set_password(self.validated_data['password1'])
         user.save()
+
+
+class UserSerializer(serializers.ModelSerializer):
+    balance = serializers.IntegerField(read_only=True)
+    class Meta:
+        model = User
+        fields = ['email', 'balance']
+
+
+
+# Balance
+class BalanceUpdateSerializer(serializers.Serializer):
+    amount = serializers.IntegerField()
+
+    def validate_amount(self, value):
+        if value == 0:
+            raise serializers.ValidationError("Qiymat 0 bo‘lishi mumkin emas.")
+        return value
+
+
+class BalanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Balance
+        fields = ['balance']

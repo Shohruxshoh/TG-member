@@ -4,7 +4,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from .views import RegisterView, RegisterGoogleView, LoginGoogleView, PasswordChangeView, PasswordResetEmailView, \
-    PasswordResetConfirmTemplateView
+    PasswordResetConfirmTemplateView, BalanceAddUpdateAPIView, BalanceSubtractionUpdateAPIView, BalanceMeAPIView, \
+    UserMeAPIView
 
 urlpatterns = [
     path('register/', RegisterView.as_view()),
@@ -21,4 +22,11 @@ urlpatterns = [
     #      name='password-reset-confirm'),
     path('reset-password/<uidb64>/<token>/', PasswordResetConfirmTemplateView.as_view(),
          name='reset-password-confirm-template'),
+
+    path('user/me/', UserMeAPIView.as_view(), name='user-me'),
+
+    # Balance
+    path('balance/add/update/', BalanceAddUpdateAPIView.as_view(), name='balance-add-update'),
+    path('balance/subtraction/update/', BalanceSubtractionUpdateAPIView.as_view(), name='balance-subtraction-update'),
+    path('balance/me/', BalanceMeAPIView.as_view(), name='balance-me'),
 ]

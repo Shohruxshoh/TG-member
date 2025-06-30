@@ -1,5 +1,5 @@
 from rest_framework import serializers
-
+from django.db import transaction
 from order.models import Order
 from .models import Country, ServicePrice, Link
 
@@ -36,21 +36,22 @@ class OrderWithLinksCreateSerializer(serializers.Serializer):
     )
 
     def create(self, validated_data):
-        user = self.context['request'].user
-        service_price = validated_data['service_price']
-        links = validated_data['links']
+        with transaction.atomic():
+            user = self.context['request'].user
+            service_price = validated_data['service_price']
+            links = validated_data['links']
 
-        # Order yaratish
-        order = Order.objects.create(
-            user=user,
-            service_price=service_price,
-            price=service_price.price,
-            status='PENDING',
-        )
+            # Order yaratish
+            order = Order.objects.create(
+                user=user,
+                service_price=service_price,
+                price=service_price.price,
+                status='PENDING',
+            )
 
-        # Har bir link uchun Link obyekti yaratamiz
-        link_objs = [Link(order=order, link=link) for link in links]
-        Link.objects.bulk_create(link_objs)
+            # Har bir link uchun Link obyekti yaratamiz
+            link_objs = [Link(order=order, link=link) for link in links]
+            Link.objects.bulk_create(link_objs)
 
         return {
             "order_id": order.id,
