@@ -12,7 +12,7 @@ class Country(models.Model):
         return self.name
 
 
-class ServicePrice(models.Model):
+class Service(models.Model):
     CHOOSE_CATEGORY = (
         ("PREMIUM", 'Premium'),
         ("VIEW", 'View'),

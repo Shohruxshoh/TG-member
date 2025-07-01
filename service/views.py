@@ -2,11 +2,11 @@ from rest_framework import viewsets, permissions, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema
-from .models import Country, ServicePrice, Link
+from .models import Country, Service, Link
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 
-from .serializers import CountrySerializer, ServicePriceSerializer, LinkSerializer, OrderWithLinksCreateSerializer
+from .serializers import CountrySerializer, ServiceSerializer, LinkSerializer, OrderWithLinksCreateSerializer
 
 
 class CountryViewSet(viewsets.ModelViewSet):
@@ -15,9 +15,9 @@ class CountryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
-class ServicePriceViewSet(viewsets.ModelViewSet):
-    queryset = ServicePrice.objects.all().order_by('-created_at')
-    serializer_class = ServicePriceSerializer
+class ServiceViewSet(viewsets.ModelViewSet):
+    queryset = Service.objects.all().order_by('-created_at')
+    serializer_class = ServiceSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_fields = ['country', 'category']

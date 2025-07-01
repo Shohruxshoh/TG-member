@@ -1,4 +1,5 @@
-from .models import User, Balance
+from balance.models import Balance
+from .models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 

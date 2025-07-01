@@ -1,6 +1,6 @@
 from django.db import models
 
-from service.models import ServicePrice
+from service.models import Service
 from users.models import User
 
 
@@ -12,7 +12,7 @@ class Order(models.Model):
         ("COMPLETED", 'Completed'),
         ("FAILED", 'Failed'),
     )
-    service_price = models.ForeignKey(ServicePrice, on_delete=models.SET_NULL, null=True, db_index=True)
+    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, db_index=True)
     status = models.CharField(max_length=20, choices=CHOOSE_STATUS, default="PENDING")
     user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
     price = models.PositiveIntegerField(default=0)

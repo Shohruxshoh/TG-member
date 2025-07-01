@@ -18,8 +18,8 @@ class OrderViewSet(mixins.ListModelMixin,
 
     # 🔽 Filter va qidiruv sozlamalari
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status', 'service_price', 'service_price__category']  # aniq qiymatlar bo‘yicha filtr
-    search_fields = ['status', 'service_price__category']  # qidiruv uchun
+    filterset_fields = ['status', 'service', 'service__category']  # aniq qiymatlar bo‘yicha filtr
+    search_fields = ['status', 'service__category']  # qidiruv uchun
     ordering_fields = ['created_at', 'price']  # tartiblash
     ordering = ['-created_at']  # default ordering
 

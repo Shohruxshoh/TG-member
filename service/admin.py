@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Country, ServicePrice, Link
+from .models import Country, Service, Link
 
 
 @admin.register(Country)
@@ -8,8 +8,8 @@ class CountryAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
-@admin.register(ServicePrice)
-class ServicePriceAdmin(admin.ModelAdmin):
+@admin.register(Service)
+class ServiceAdmin(admin.ModelAdmin):
     list_display = ('id', 'country', 'category', 'price', 'member', 'percent')
     list_filter = ('country', 'category')
     search_fields = ('category',)

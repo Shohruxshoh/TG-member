@@ -1,20 +1,20 @@
 from rest_framework import serializers
 from django.db import transaction
 from order.models import Order
-from .models import Country, ServicePrice, Link
+from .models import Country, Service, Link
 
 
 class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
-        fields = '__all__'
+        fields = ['id', 'name']
         read_only_fields = ['created_at', 'updated_at']
 
 
-class ServicePriceSerializer(serializers.ModelSerializer):
+class ServiceSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ServicePrice
+        model = Service
         fields = ['id', 'country', 'category', 'price', 'member', 'percent']
         read_only_fields = ['created_at', 'updated_at']
 
@@ -24,12 +24,12 @@ class LinkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Link
-        fields = '__all__'
+        fields = ['id', 'order', 'link']
         read_only_fields = ['created_at', 'updated_at']
 
 
 class OrderWithLinksCreateSerializer(serializers.Serializer):
-    service_price = serializers.PrimaryKeyRelatedField(queryset=ServicePrice.objects.all())
+    service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
     links = serializers.ListField(
         child=serializers.URLField(),  # yoki CharField(), agar URL bo'lmasa
         allow_empty=False
@@ -38,14 +38,14 @@ class OrderWithLinksCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         with transaction.atomic():
             user = self.context['request'].user
-            service_price = validated_data['service_price']
+            service = validated_data['service']
             links = validated_data['links']
 
             # Order yaratish
             order = Order.objects.create(
                 user=user,
-                service_price=service_price,
-                price=service_price.price,
+                service=service,
+                price=service.price,
                 status='PENDING',
             )
 
