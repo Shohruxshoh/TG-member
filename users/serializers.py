@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
 from .models import User
@@ -118,9 +119,24 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     balance = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = User
         fields = ['email', 'balance']
 
 
+class UserChangeEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=200, min_length=3)
 
+    def validate_email(self, email):
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("Bunday email allaqachon mavjud.")
+        return email
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        new_email = self.validated_data['email']
+        user.email = new_email
+        user.username = new_email
+        user.save()
+        return user

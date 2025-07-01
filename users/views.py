@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .serializers import RegisterSerializer, RegisterGoogleSerializer, LoginGoogleSerializer, PasswordChangeSerializer, \
-    PasswordResetEmailRequestSerializer, PasswordResetConfirmSerializer, UserSerializer
+    PasswordResetEmailRequestSerializer, PasswordResetConfirmSerializer, UserSerializer, UserChangeEmailSerializer
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -152,3 +152,25 @@ class UserMeAPIView(APIView):
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+@extend_schema(
+    request=UserChangeEmailSerializer,
+    summary="Foydalanuvchining emailini o'zgartirish",
+    description="Tizimga kirgan foydalanuvchining emailini o'zgartirish uchun API.\
+     Faqat autentifikatsiyadan o‘tgan foydalanuvchi o‘z enailini o'zgartira oladi.",
+    responses={
+        200: UserSerializer,
+        404: {"description": "Foydalanuvchi topilmadi"},
+        401: {"description": "Avtorizatsiya talab qilinadi"},
+        400: {"description": "Bunday email mavjud."},
+    },
+    tags=["User"]
+)
+class UserChangeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        serializer = UserChangeEmailSerializer(data=request.data, context={"request":request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Email muvaffaqiyatli o‘zgartirildi"}, status=status.HTTP_200_OK)
