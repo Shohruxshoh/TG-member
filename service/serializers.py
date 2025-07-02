@@ -45,6 +45,7 @@ class OrderWithLinksCreateSerializer(serializers.Serializer):
             order = Order.objects.create(
                 user=user,
                 service=service,
+                member=service.member,
                 price=service.price,
                 status='PENDING',
             )
