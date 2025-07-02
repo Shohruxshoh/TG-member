@@ -46,6 +46,7 @@ class OrderWithLinksCreateSerializer(serializers.Serializer):
                 user=user,
                 service=service,
                 member=service.member,
+                service_category= service.category,
                 price=service.price,
                 status='PENDING',
             )

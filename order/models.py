@@ -17,6 +17,7 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
     price = models.PositiveIntegerField(default=0)
     member = models.PositiveIntegerField(default=0)
+    service_category = models.CharField(max_length=200, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

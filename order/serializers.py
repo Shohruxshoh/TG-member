@@ -11,7 +11,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = '__all__'
-        read_only_fields = ['user', 'price', 'member', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'price', 'member', 'service_category', 'created_at', 'updated_at']
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'service', 'status', 'price', 'member', 'created_at', 'links']
+        fields = ['id', 'service', 'status', 'price', 'member', 'service_category', 'created_at', 'links']
 
     def get_links(self, obj):
         links = Link.objects.filter(order=obj)
