@@ -14,11 +14,11 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     links = serializers.SerializerMethodField()
-    service_price = serializers.StringRelatedField()
+    service = serializers.StringRelatedField()
 
     class Meta:
         model = Order
-        fields = ['id', 'service_price', 'status', 'price', 'created_at', 'links']
+        fields = ['id', 'service', 'status', 'price', 'created_at', 'links']
 
     def get_links(self, obj):
         links = Link.objects.filter(order=obj)

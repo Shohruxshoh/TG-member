@@ -25,7 +25,7 @@ class OrderViewSet(mixins.ListModelMixin,
 
     def get_queryset(self):
         # Foydalanuvchi faqat o‘z buyurtmalarini ko‘radi
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.filter(user=self.request.user, is_active=True)
 
     def get_serializer_class(self):
         if self.action == 'retrieve':

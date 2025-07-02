@@ -10,17 +10,17 @@ from .serializers import CountrySerializer, ServiceSerializer, LinkSerializer, O
 
 
 class CountryViewSet(viewsets.ModelViewSet):
-    queryset = Country.objects.all().order_by('name')
+    queryset = Country.objects.filter(is_active=True).order_by('name')
     serializer_class = CountrySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
 class ServiceViewSet(viewsets.ModelViewSet):
-    queryset = Service.objects.all().order_by('-created_at')
+    queryset = Service.objects.filter(is_active=True).order_by('-created_at')
     serializer_class = ServiceSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['country', 'category']
+    filterset_fields = ['country', 'category', 'post']
     search_fields = ['category']
 
 
@@ -29,7 +29,7 @@ class LinkViewSet(mixins.ListModelMixin,
                   mixins.UpdateModelMixin,
                   mixins.DestroyModelMixin,
                   viewsets.GenericViewSet):
-    queryset = Link.objects.all().order_by('-created_at')
+    queryset = Link.objects.filter(is_active=True).order_by('-created_at')
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = LinkSerializer
 

@@ -7,7 +7,7 @@ from .models import Country, Service, Link
 class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'is_active']
         read_only_fields = ['created_at', 'updated_at']
 
 
@@ -15,7 +15,7 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Service
-        fields = ['id', 'country', 'category', 'price', 'member', 'percent']
+        fields = ['id', 'country', 'category', 'price', 'member', 'percent', 'post', 'is_active']
         read_only_fields = ['created_at', 'updated_at']
 
 
@@ -24,7 +24,7 @@ class LinkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Link
-        fields = ['id', 'order', 'link']
+        fields = ['id', 'order', 'link', 'is_active']
         read_only_fields = ['created_at', 'updated_at']
 
 
