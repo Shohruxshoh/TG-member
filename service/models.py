@@ -5,6 +5,7 @@ from django.db import models
 
 class Country(models.Model):
     name = models.CharField(max_length=200, unique=True)
+    icon = models.CharField(max_length=255, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

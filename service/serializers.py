@@ -7,7 +7,7 @@ from .models import Country, Service, Link
 class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
-        fields = ['id', 'name', 'is_active']
+        fields = ['id', 'name', 'icon', 'is_active']
         read_only_fields = ['created_at', 'updated_at']
 
 
