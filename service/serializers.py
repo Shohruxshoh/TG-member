@@ -31,7 +31,7 @@ class LinkSerializer(serializers.ModelSerializer):
 class OrderWithLinksCreateSerializer(serializers.Serializer):
     service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
     links = serializers.ListField(
-        child=serializers.URLField(),  # yoki CharField(), agar URL bo'lmasa
+        child=serializers.CharField(),  # yoki CharField(), agar URL bo'lmasa
         allow_empty=False
     )
 

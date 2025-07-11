@@ -1,12 +1,13 @@
 from django.shortcuts import render
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
 from rest_framework import status
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from balance.models import Balance
-from balance.serializers import BalanceUpdateSerializer, BalanceSerializer
+from balance.models import Balance, Transfer
+from balance.serializers import BalanceUpdateSerializer, BalanceSerializer, TransferSerializer, GiftActivateSerializer
 
 
 # Create your views here.
@@ -105,3 +106,57 @@ class BalanceMeAPIView(APIView):
 
         serializer = BalanceSerializer(balance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TransferListCreateAPIView(ListCreateAPIView):
+    serializer_class = TransferSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Transfer.objects.filter(sender=self.request.user).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
+@extend_schema(
+    request=GiftActivateSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=None,
+            description="Gift kodi muvaffaqiyatli aktivlashtirildi",
+            examples=[
+                OpenApiExample(
+                    "Muvaffaqiyatli",
+                    value={
+                        "detail": "Gift muvaffaqiyatli aktivlashtirildi.",
+                        "gift": "ABC123XYZ",
+                        "value": 500
+                    }
+                )
+            ]
+        ),
+        400: OpenApiResponse(
+            description="Xatolik yuz berdi",
+            examples=[
+                OpenApiExample(
+                    "Xatolik",
+                    value={"gift": ["Bunday gift kodi mavjud emas."]}
+                )
+            ]
+        )
+    },
+    tags=["Gift"]
+)
+class GiftActivateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = GiftActivateSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        gift = serializer.save()
+        return Response({
+            "detail": "Gift muvaffaqiyatli aktivlashtirildi.",
+            "gift": gift.gift,
+            "value": gift.value
+        }, status=status.HTTP_200_OK)
