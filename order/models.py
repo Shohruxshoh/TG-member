@@ -9,6 +9,8 @@ from users.models import User
 class Order(models.Model):
     CHOOSE_STATUS = (
         ("PENDING", 'Pending'),
+        ("PARTIAL", 'Partial'),
+        ("PROCESSING", 'Processing'),
         ("COMPLETED", 'Completed'),
         ("FAILED", 'Failed'),
     )

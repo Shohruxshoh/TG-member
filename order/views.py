@@ -5,6 +5,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from .models import Order
 from .serializers import OrderSerializer, OrderDetailSerializer
+from .filters import OrderFilter
 
 
 class OrderViewSet(mixins.ListModelMixin,
@@ -18,7 +19,7 @@ class OrderViewSet(mixins.ListModelMixin,
 
     # 🔽 Filter va qidiruv sozlamalari
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status', 'service', 'service__category']  # aniq qiymatlar bo‘yicha filtr
+    filterset_class = OrderFilter
     search_fields = ['status', 'service__category']  # qidiruv uchun
     ordering_fields = ['created_at', 'price']  # tartiblash
     ordering = ['-created_at']  # default ordering

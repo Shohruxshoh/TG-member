@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
-from .models import User
+from .models import User, TelegramAccount
 from rest_framework import serializers
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
@@ -140,3 +140,10 @@ class UserChangeEmailSerializer(serializers.Serializer):
         user.username = new_email
         user.save()
         return user
+
+
+class TelegramAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TelegramAccount
+        fields = ['id', 'user', 'telegram_id', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'created_at', 'updated_at']

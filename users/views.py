@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from .serializers import RegisterSerializer, RegisterGoogleSerializer, LoginGoogleSerializer, PasswordChangeSerializer, \
-    PasswordResetEmailRequestSerializer, PasswordResetConfirmSerializer, UserSerializer, UserChangeEmailSerializer
-from rest_framework.generics import CreateAPIView, RetrieveAPIView
+    PasswordResetEmailRequestSerializer, PasswordResetConfirmSerializer, UserSerializer, UserChangeEmailSerializer, \
+    TelegramAccountSerializer
+from rest_framework.generics import CreateAPIView, RetrieveAPIView, ListCreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import User
+from .models import User, TelegramAccount
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from django.views import View
@@ -170,7 +171,18 @@ class UserChangeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, *args, **kwargs):
-        serializer = UserChangeEmailSerializer(data=request.data, context={"request":request})
+        serializer = UserChangeEmailSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "Email muvaffaqiyatli o‘zgartirildi"}, status=status.HTTP_200_OK)
+
+class TelegramAccountAPIView(ListCreateAPIView):
+
+    serializer_class = TelegramAccountSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return TelegramAccount.objects.filter(user=self.request.user, is_active=True)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
