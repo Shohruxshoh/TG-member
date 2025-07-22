@@ -81,14 +81,14 @@ class SOrderWithLinksChildCreateSerializer(serializers.Serializer):
 class SOrderLinkCreateSerializer(serializers.Serializer):
     service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
     link = serializers.CharField(max_length=250, required=True)
-    kanal_name = serializers.CharField(max_length=200)
+    channel_name = serializers.CharField(max_length=200)
 
     def create(self, validated_data):
         with transaction.atomic():
             user = self.context['request'].user
             service = validated_data['service']
             link = validated_data['link']
-            kanal_name = validated_data['kanal_name']
+            channel_name = validated_data['channel_name']
             # Order yaratish
             order = Order.objects.create(
                 user=user,
@@ -98,11 +98,12 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
                 price=service.price,
                 status='PENDING',
             )
-            Link.objects.create(order=order, link=link, kanal_name=kanal_name)
+            Link.objects.create(order=order, link=link, channel_name=channel_name)
 
         return {
             "order_id": order.pk,
-            "links": link
+            "links": link,
+            "channel_name":channel_name
         }
 
 
