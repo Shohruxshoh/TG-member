@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
-from .models import User, TelegramAccount
+from users.models import User, TelegramAccount
 from rest_framework import serializers
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes

@@ -19,18 +19,35 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/users/', include("users.urls")),
-    path('api/services/', include("service.urls")),
-    path('api/orders/', include("order.urls")),
-    path('api/balances/', include("balance.urls")),
+    path('api/admin/', include('core.urls.admin_urls')),
+    path('api/app/', include('core.urls.app_urls')),
+    path('silk/', include('silk.urls', namespace='silk')),
 
-
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    # Optional UI:
-    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # Spectacular schema views
+    path(
+        "schema/admin/",
+        SpectacularAPIView.as_view(urlconf="core.urls.admin_urls"),
+        name="admin-schema",
+    ),
+    path(
+        "schema/app/",
+        SpectacularAPIView.as_view(urlconf="core.urls.app_urls"),
+        name="app-schema",
+    ),
+    # Swagger UI for each API group
+    path(
+        "swagger/admin/",
+        SpectacularSwaggerView.as_view(url_name="admin-schema"),
+        name="admin-swagger",
+    ),
+    path(
+        "swagger/app/",
+        SpectacularSwaggerView.as_view(url_name="app-schema"),
+        name="aoo-swagger",
+    ),
 ]
 if settings.DEBUG:
     urlpatterns += (

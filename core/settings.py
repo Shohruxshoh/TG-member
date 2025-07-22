@@ -14,7 +14,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,11 +46,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_spectacular',
     'corsheaders',
+    'silk',
 
     'users',
     'service',
     'order',
     'balance',
+    # 'telegram',
 ]
 
 MIDDLEWARE = [
@@ -63,9 +64,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'silk.middleware.SilkyMiddleware',
 ]
 
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = 'core.urls.urls'
 
 TEMPLATES = [
     {
@@ -155,6 +157,11 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
+    "SCHEMA_PATH_PREFIX": r"/api/(admin|app)",
+    "SERVERS": [
+        {"url": "/api/app", "description": "App API"},
+        {"url": "/api/admin", "description": "Admin API"},
+    ],
 }
 from datetime import timedelta
 
@@ -205,3 +212,13 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+SILKY_PYTHON_PROFILER = True
+SILKY_AUTHENTICATION = True
+SILKY_AUTHORISATION = True
+SILKY_MAX_RESPONSE_BODY_SIZE = 1024
+SILKY_INTERCEPT_PERCENT = 100  # Devda hammasi
+
+TELEGRAM_API_ID = 26047327
+TELEGRAM_API_HASH = '4b3a297daf243228aa9ae085d775f411'
+TELEGRAM_SESSION_NAME = 'tg_session'

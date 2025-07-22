@@ -1,5 +1,4 @@
 from django.urls import path
-
 from balance.views import BalanceAddUpdateAPIView, BalanceSubtractionUpdateAPIView, BalanceMeAPIView, \
     TransferListCreateAPIView, GiftActivateAPIView
 

@@ -49,7 +49,7 @@ class Balance(models.Model):
 
 
 class Transfer(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_transfers')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_transfers', db_index=True)
     receiver_email = models.EmailField(max_length=200)
     value = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -57,7 +57,6 @@ class Transfer(models.Model):
 
     def __str__(self):
         return f"{self.sender.username} → {self.receiver_email}: {self.value}"
-
 
 
 class Gift(models.Model):
@@ -91,3 +90,34 @@ class GiftUsage(models.Model):
 
     def __str__(self):
         return f"{self.user.username} used {self.gift.gift}"
+
+
+class Buy(models.Model):
+    coin = models.PositiveIntegerField(default=0)
+    price = models.FloatField(default=0)
+    percent = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # agar percent > 0 bo‘lsa, narxni hisoblaymiz
+        if self.percent > 0 and self.price > 0:
+            discounted_price = self.price - (self.price * self.percent / 100)
+            self.price = discounted_price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Coin: {self.coin}- Price: {self.price}"
+
+class OrderBuy(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    buy = models.ForeignKey(Buy, on_delete=models.PROTECT)
+    coin = models.PositiveIntegerField(default=0)
+    price = models.FloatField(default=0)
+    is_paid = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Coin: {self.coin}- Price: {self.price}"

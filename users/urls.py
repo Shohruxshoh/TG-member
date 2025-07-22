@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from .views import RegisterView, RegisterGoogleView, LoginGoogleView, PasswordChangeView, PasswordResetEmailView, \
+from users.view import RegisterView, RegisterGoogleView, LoginGoogleView, PasswordChangeView, PasswordResetEmailView, \
     PasswordResetConfirmTemplateView, UserMeAPIView, UserChangeAPIView, TelegramAccountAPIView
 
 urlpatterns = [

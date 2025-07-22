@@ -21,13 +21,13 @@ class Service(models.Model):
         ("REACTION", 'Reaction'),
         ("MEMBER", 'Member'),
     )
-    country = models.ForeignKey(Country, on_delete=models.PROTECT)
+    country = models.ForeignKey(Country, on_delete=models.PROTECT, db_index=True)
     category = models.CharField(max_length=20, choices=CHOOSE_CATEGORY, default="MEMBER", db_index=True)
     price = models.PositiveIntegerField(default=0)
     member = models.PositiveIntegerField(default=0)
     percent = models.PositiveIntegerField(default=0)
     post = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -44,8 +44,9 @@ class Service(models.Model):
 
 class Link(models.Model):
     order = models.ForeignKey('order.Order', on_delete=models.CASCADE)
+    kanal_name = models.CharField(max_length=200, null=True, blank=True)
     link = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

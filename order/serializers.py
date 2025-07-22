@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from service.models import Link
-from service.serializers import LinkSerializer
+from service.serializers.app_serializers import SLinkSerializer
 from .models import Order
 
 
@@ -24,4 +24,4 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
     def get_links(self, obj):
         links = Link.objects.filter(order=obj)
-        return LinkSerializer(links, many=True).data
+        return SLinkSerializer(links, many=True).data

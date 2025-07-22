@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serializers import RegisterSerializer, RegisterGoogleSerializer, LoginGoogleSerializer, PasswordChangeSerializer, \
+from users.serializers.serializers import RegisterSerializer, RegisterGoogleSerializer, LoginGoogleSerializer, PasswordChangeSerializer, \
     PasswordResetEmailRequestSerializer, PasswordResetConfirmSerializer, UserSerializer, UserChangeEmailSerializer, \
     TelegramAccountSerializer
 from rest_framework.generics import CreateAPIView, RetrieveAPIView, ListCreateAPIView
