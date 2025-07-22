@@ -30,7 +30,7 @@ class SLinkListAPIView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_fields = ['order', 'order__service_category']
-    search_fields = ['link', 'kanal_name']
+    search_fields = ['link', 'channel_name']
 
 
 class SOrderWithLinksCreateView(APIView):

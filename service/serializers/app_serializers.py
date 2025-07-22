@@ -22,7 +22,7 @@ class SLinkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Link
-        fields = ['id', 'order', 'link', 'kanal_name']
+        fields = ['id', 'order', 'link', 'channel_name']
 
 
 class SOrderWithLinksCreateSerializer(serializers.Serializer):

@@ -44,7 +44,7 @@ class Service(models.Model):
 
 class Link(models.Model):
     order = models.ForeignKey('order.Order', on_delete=models.CASCADE)
-    kanal_name = models.CharField(max_length=200, null=True, blank=True)
+    channel_name = models.CharField(max_length=200, null=True, blank=True)
     link = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
