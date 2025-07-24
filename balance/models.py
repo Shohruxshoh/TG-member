@@ -63,7 +63,7 @@ class Gift(models.Model):
     gift = models.CharField(max_length=200, unique=True)
     value = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)  # yangi maydon
-    expires_at = models.DateTimeField(null=True, blank=True)  # optional muddati
+    expires_at = models.DateField(null=True, blank=True)  # optional muddati
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

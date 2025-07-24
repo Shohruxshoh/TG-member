@@ -11,7 +11,7 @@ class SBalanceUpdateSerializer(serializers.Serializer):
 
     def validate_amount(self, value):
         if value == 0:
-            raise serializers.ValidationError("Qiymat 0 bo‘lishi mumkin emas.")
+            raise serializers.ValidationError("The value cannot be 0.")
         return value
 
 
@@ -33,17 +33,17 @@ class STransferSerializer(serializers.ModelSerializer):
         value = attrs.get('value')
 
         if value <= 0:
-            raise serializers.ValidationError("Qiymat musbat bo'lishi kerak.")
+            raise serializers.ValidationError("The value must be positive.")
 
         if sender.email == receiver_email:
-            raise serializers.ValidationError("O'zingizga transfer qilish mumkin emas.")
+            raise serializers.ValidationError("It is not possible to transfer to yourself.")
 
         if not User.objects.filter(email=receiver_email).exists():
-            raise serializers.ValidationError("Qabul qiluvchi foydalanuvchi topilmadi.")
+            raise serializers.ValidationError("The recipient user was not found.")
 
         sender_balance = getattr(sender, 'user_balance', None)
         if not sender_balance or sender_balance.balance < value:
-            raise serializers.ValidationError("Balansingizda yetarli mablag' yo'q.")
+            raise serializers.ValidationError("You don't have enough funds in your balance.")
 
         return attrs
 
@@ -78,21 +78,21 @@ class SGiftActivateSerializer(serializers.Serializer):
         try:
             gift = Gift.objects.get(gift=gift_code)
         except Gift.DoesNotExist:
-            raise serializers.ValidationError("Bunday gift kodi mavjud emas.")
+            raise serializers.ValidationError("No such gift code exists.")
 
         # --- YANGI TEKSHIRUV ---
         now = timezone.now()
 
         if gift.expires_at:
             if not gift.is_active or gift.expires_at < now:
-                raise serializers.ValidationError("Bu gift kodi aktiv emas yoki muddati tugagan.")
+                raise serializers.ValidationError("This gift code is not active or has expired.")
         else:
             if not gift.is_active:
-                raise serializers.ValidationError("Bu gift kodi aktiv emas.")
+                raise serializers.ValidationError("This gift code is not active.")
 
         # Avval foydalanganmi
         if GiftUsage.objects.filter(user=user, gift=gift).exists():
-            raise serializers.ValidationError("Bu gift kodni allaqachon ishlatgansiz.")
+            raise serializers.ValidationError("You have already used this gift code.")
 
         attrs['gift'] = gift
         return attrs

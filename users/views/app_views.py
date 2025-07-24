@@ -3,6 +3,8 @@ from rest_framework.generics import CreateAPIView, ListCreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
+from service.schemas import COMMON_RESPONSES
 from users.models import User, TelegramAccount
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
@@ -14,13 +16,30 @@ from users.serializers.app_serializers import SRegisterSerializer, SRegisterGoog
 
 
 # Create your views here.
-
+@extend_schema(
+    request=SRegisterSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=SRegisterSerializer
+        ),
+        **COMMON_RESPONSES
+    }
+)
 class SRegisterView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = SRegisterSerializer
     permission_classes = [AllowAny]
 
 
+@extend_schema(
+    request=SRegisterGoogleSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=SRegisterGoogleSerializer
+        ),
+        **COMMON_RESPONSES
+    }
+)
 class SRegisterGoogleView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = SRegisterGoogleSerializer
@@ -39,13 +58,8 @@ class SLoginGoogleView(APIView):
                 },
                 response_only=True,
             ),
-            400: OpenApiExample(
-                name="Login error",
-                value={"non_field_errors": ["Bunday foydalanuvchi mavjud emas."]},
-                response_only=True,
-            ),
+            **COMMON_RESPONSES
         },
-        description="Foydalanuvchi Google orqali email orqali tizimga kiradi. JWT token qaytariladi.",
     )
     def post(self, request, *args, **kwargs):
         serializer = SLoginGoogleSerializer(data=request.data)
@@ -59,10 +73,9 @@ class SPasswordChangeView(APIView):
     @extend_schema(
         request=SPasswordChangeSerializer,
         responses={
-            200: OpenApiResponse(response=SPasswordChangeSerializer, description="Parol muvaffaqiyatli o'zgartirildi."),
-            400: OpenApiResponse(description="Parolni o'zgartirishda xatolik."),
+            200: OpenApiResponse(response=SPasswordChangeSerializer, description="Password changed successfully."),
+            **COMMON_RESPONSES
         },
-        description="Foydalanuvchi yangi parolni kiritib, mavjud parolini yangilaydi. Parollar mos bo'lishi kerak.",
     )
     def patch(self, request, *args, **kwargs):
         serializer = SPasswordChangeSerializer(data=request.data)
@@ -78,13 +91,15 @@ class SPasswordChangeView(APIView):
 class SPasswordResetEmailView(APIView):
     @extend_schema(
         request=SPasswordResetEmailRequestSerializer,
-        responses={200: {"description": "Tiklash havolasi yuborildi"}}
+        responses={200: {"description": "Recovery link sent"},
+                   **COMMON_RESPONSES
+                   }
     )
     def post(self, request):
         serializer = SPasswordResetEmailRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(request)
-        return Response({"message": "Parolni tiklash havolasi emailingizga yuborildi"}, status=status.HTTP_200_OK)
+        return Response({"message": "A password reset link has been sent to your email."}, status=status.HTTP_200_OK)
 
 
 # class PasswordResetConfirmView(APIView):
@@ -131,15 +146,14 @@ class SPasswordResetConfirmTemplateView(View):
 
 
 @extend_schema(
-    summary="Foydalanuvchining malumotlarini olish",
-    description="Tizimga kirgan foydalanuvchining balansini va malumotlarini olish uchun API.\
-     Faqat autentifikatsiyadan o‘tgan foydalanuvchi o‘z balansini ko‘ra oladi.",
+    summary="Get user information",
+    description="API to retrieve the balance and information of a logged-in user.\
+     Only authenticated users can see their balance.",
     responses={
         200: SUserSerializer,
-        404: {"description": "Foydalanuvchi topilmadi"},
-        401: {"description": "Avtorizatsiya talab qilinadi"},
+        **COMMON_RESPONSES
     },
-    tags=["User"]
+    tags=["users"]
 )
 class SUserMeAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -156,16 +170,14 @@ class SUserMeAPIView(APIView):
 
 @extend_schema(
     request=SUserChangeEmailSerializer,
-    summary="Foydalanuvchining emailini o'zgartirish",
-    description="Tizimga kirgan foydalanuvchining emailini o'zgartirish uchun API.\
-     Faqat autentifikatsiyadan o‘tgan foydalanuvchi o‘z enailini o'zgartira oladi.",
+    summary="Change user email",
+    description="API to change the email of a logged in user.\
+     Only authenticated users can change their email address..",
     responses={
         200: SUserSerializer,
-        404: {"description": "Foydalanuvchi topilmadi"},
-        401: {"description": "Avtorizatsiya talab qilinadi"},
-        400: {"description": "Bunday email mavjud."},
+        **COMMON_RESPONSES
     },
-    tags=["User"]
+    tags=["users"]
 )
 class SUserChangeAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -174,10 +186,18 @@ class SUserChangeAPIView(APIView):
         serializer = SUserChangeEmailSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"message": "Email muvaffaqiyatli o‘zgartirildi"}, status=status.HTTP_200_OK)
+        return Response({"message": "Email changed successfully."}, status=status.HTTP_200_OK)
 
+
+@extend_schema(
+    responses={
+        200: OpenApiResponse(
+            response=STelegramAccountSerializer
+        ),
+        **COMMON_RESPONSES
+    }
+)
 class STelegramAccountAPIView(ListCreateAPIView):
-
     serializer_class = STelegramAccountSerializer
     permission_classes = [IsAuthenticated]
 

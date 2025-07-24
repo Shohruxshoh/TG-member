@@ -1,10 +1,10 @@
 from django.urls import path
-from balance.views.app_views import SBalanceAddUpdateAPIView, SBalanceSubtractionUpdateAPIView, SBalanceMeAPIView, \
+from balance.views.app_views import SBalanceMeAPIView, \
     STransferListCreateAPIView, SGiftActivateAPIView, SBuyListAPIView, SOrderBuyListAPIView, SGiftUsageAPIView
 
 urlpatterns = [
-    path('add/update/', SBalanceAddUpdateAPIView.as_view(), name='balance-add-update'),
-    path('subtraction/update/', SBalanceSubtractionUpdateAPIView.as_view(), name='balance-subtraction-update'),
+    # path('add/update/', SBalanceAddUpdateAPIView.as_view(), name='balance-add-update'),
+    # path('subtraction/update/', SBalanceSubtractionUpdateAPIView.as_view(), name='balance-subtraction-update'),
     path('me/', SBalanceMeAPIView.as_view(), name='balance-me'),
 
     path('transfers/', STransferListCreateAPIView.as_view(), name='transfer-list-create'),

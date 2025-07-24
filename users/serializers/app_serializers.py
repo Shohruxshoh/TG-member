@@ -6,12 +6,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+from core.settings import EMAIL_HOST_USER
 
 
 class SRegisterSerializer(serializers.ModelSerializer):
@@ -67,7 +62,7 @@ class SLoginGoogleSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            raise serializers.ValidationError("Bunday foydalanuvchi mavjud emas.")
+            raise serializers.ValidationError("No such user exists..")
 
         refresh = RefreshToken.for_user(user)
         return {
@@ -82,7 +77,7 @@ class SPasswordChangeSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs['password1'] != attrs['password2']:
-            raise serializers.ValidationError({'password2': 'Parollar mos emas.'})
+            raise serializers.ValidationError({'password2': 'Passwords do not match..'})
         return attrs
 
 
@@ -91,7 +86,7 @@ class SPasswordResetEmailRequestSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Bunday email ro'yxatda mavjud emas.")
+            raise serializers.ValidationError("This email address does not exist in the list.")
         return value
 
     def save(self, request):
@@ -122,13 +117,13 @@ class SPasswordResetConfirmSerializer(serializers.Serializer):
             uid = urlsafe_base64_decode(attrs['uidb64']).decode()
             user = User.objects.get(pk=uid)
         except Exception:
-            raise serializers.ValidationError("Noto'g'ri token yoki foydalanuvchi.")
+            raise serializers.ValidationError("Invalid token or user.")
 
         if not default_token_generator.check_token(user, attrs['token']):
-            raise serializers.ValidationError("Token noto'g'ri yoki muddati tugagan.")
+            raise serializers.ValidationError("The token is invalid or expired.")
 
         if attrs['password1'] != attrs['password2']:
-            raise serializers.ValidationError("Parollar mos emas.")
+            raise serializers.ValidationError("The passwords do not match.")
 
         attrs['user'] = user
         return attrs
@@ -152,7 +147,7 @@ class SUserChangeEmailSerializer(serializers.Serializer):
 
     def validate_email(self, email):
         if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError("Bunday email allaqachon mavjud.")
+            raise serializers.ValidationError("This email already exists..")
         return email
 
     def save(self, **kwargs):
