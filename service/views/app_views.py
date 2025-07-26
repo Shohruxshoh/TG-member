@@ -1,13 +1,18 @@
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from datetime import timedelta
+from django.utils import timezone
+from order.models import OrderMember
+from service.filters import LinkFilter
 from service.models import Country, Service, Link
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
-
+from django.db.models import OuterRef, Subquery, DateTimeField, ExpressionWrapper, F, Q
+from django.utils.timezone import now
 from service.schemas import COMMON_RESPONSES
-from service.serializers.app_serializers import SCountrySerializer, SServiceSerializer, SLinkSerializer, \
+from service.serializers.app_serializers import SCountrySerializer, SServiceSerializer, \
     SOrderWithLinksCreateSerializer
 
 
@@ -42,21 +47,49 @@ class SServiceListAPIView(generics.ListAPIView):
     search_fields = ['category']
 
 
-@extend_schema(
-    responses={
-        200: OpenApiResponse(
-            response=SLinkSerializer
-        ),
-        **COMMON_RESPONSES
-    }
-)
-class SLinkListAPIView(generics.ListAPIView):
-    queryset = Link.objects.select_related('order').filter(order__is_active=True, order__status="PROCESSING")
-    serializer_class = SLinkSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['order', 'order__service_category']
-    search_fields = ['link', 'channel_name']
+# @extend_schema(
+#     parameters=[
+#         OpenApiParameter("telegram_id", str, OpenApiParameter.QUERY, required=True)
+#     ],
+#     responses={
+#         200: OpenApiResponse(
+#             response=SLinkSerializer
+#         ),
+#         **COMMON_RESPONSES
+#     }
+# )
+# class SLinkListAPIView(generics.ListAPIView):
+#     serializer_class = SLinkSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#     filter_backends = [DjangoFilterBackend, SearchFilter]
+#     filterset_class = LinkFilter
+#     search_fields = ['link', 'channel_name']
+#
+#     def get_queryset(self):
+#         user = self.request.user
+#         telegram_id = self.request.query_params.get("telegram_id")
+#
+#         if not telegram_id:
+#             return Link.objects.none()  # yoki raise ValidationError("telegram_id kerak")
+#
+#         three_days_ago = timezone.now() - timedelta(days=3)
+#
+#         ordermember_qs = OrderMember.objects.filter(
+#             order=OuterRef('order_id'),
+#             user=user,
+#             telegram_id=telegram_id
+#         ).order_by('-joined_at')
+#
+#         links = Link.objects.select_related('order').annotate(
+#             member_joined_at=Subquery(ordermember_qs.values('joined_at')[:1], output_field=DateTimeField())
+#         ).filter(
+#             order__is_active=True,
+#             order__status="PROCESSING"
+#         ).filter(
+#             Q(member_joined_at__isnull=True) |
+#             Q(member_joined_at__lt=three_days_ago)
+#         )
+#         return links
 
 
 class SOrderWithLinksCreateView(APIView):

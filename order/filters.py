@@ -8,3 +8,9 @@ class OrderFilter(filters.FilterSet):
     class Meta:
         model = Order
         fields = ['status', 'service', 'service__category', 'created_at']
+
+
+class OrderLinkFilter(filters.FilterSet):
+    class Meta:
+        model = Order
+        fields = ['service__category', 'service__country__country_code']

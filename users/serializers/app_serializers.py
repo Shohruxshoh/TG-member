@@ -162,5 +162,5 @@ class SUserChangeEmailSerializer(serializers.Serializer):
 class STelegramAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = TelegramAccount
-        fields = ['id', 'user', 'telegram_id', 'is_active', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'telegram_id', 'is_active', 'country_code','created_at', 'updated_at']
         read_only_fields = ['user', 'created_at', 'updated_at']

@@ -63,8 +63,8 @@ def save_links_for_order(service: Service, user, urls: list[str]) -> dict:
         Order.objects.bulk_create(child_orders)
 
         # 4) Linklar faqat parent orderga bog‘lanadi
-        links = [Link(order=parent_order, link=url) for url in cleaned]
-        Link.objects.bulk_create(links)
+        # links = [Link(order=parent_order, link=url) for url in cleaned]
+        # Link.objects.bulk_create(links)
 
     return {
         "existing": len(urls) - len(cleaned),

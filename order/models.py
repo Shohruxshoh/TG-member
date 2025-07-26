@@ -51,6 +51,8 @@ class Order(models.Model):
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, db_index=True)
     status = models.CharField(max_length=20, choices=CHOOSE_STATUS, default="PENDING", db_index=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    link = models.CharField(max_length=200)
+    channel_name = models.CharField(max_length=200)
     price = models.PositiveIntegerField(default=0)
     member = models.PositiveIntegerField(default=0)
     service_category = models.CharField(max_length=200, null=True, blank=True, db_index=True)
@@ -88,7 +90,9 @@ class OrderMember(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('order', 'telegram')  # 1ta telegram bitta orderga 1 marta yozilishi uchun
+        indexes = [
+            models.Index(fields=['order', 'user', 'telegram']),
+        ]
 
     def __str__(self):
-        return self.user.email
+        return f"{self.user.email}- {self.order.channel_name}"

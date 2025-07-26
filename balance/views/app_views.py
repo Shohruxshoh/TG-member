@@ -103,7 +103,7 @@ class SBalanceMeAPIView(APIView):
         try:
             balance = Balance.objects.select_related('user').get(user=request.user)
         except Balance.DoesNotExist:
-            return Response({"detail": "Balans topilmadi."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Balance not found."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = SBalanceSerializer(balance)
         return Response(serializer.data, status=status.HTTP_200_OK)

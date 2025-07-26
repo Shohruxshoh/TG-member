@@ -1,20 +1,24 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework import permissions, generics, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
-from order.models import Order
+from order.models import Order, OrderMember
 from order.permissions import IsOwnerOrReadOnly
 from order.serializers.app_serializers import SOrderSerializer, SOrderDetailSerializer, SOrderLinkCreateSerializer, \
-    STelegramBackfillSerializer
-from order.filters import OrderFilter
+    STelegramBackfillSerializer, SAddVipSerializer, SOrderLinkListSerializer
+from order.filters import OrderFilter, OrderLinkFilter
 from order.services import save_links_for_order
 from order.telegram_fetch import fetch_prior_message_urls
-from service.models import Link, Service
+from service.models import Service
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from asgiref.sync import async_to_sync
 from service.schemas import COMMON_RESPONSES
+from django.utils.timezone import now
+from datetime import timedelta
+from django.db.models import OuterRef, Subquery, Exists
+from django.db.models.functions import Now
 
 
 @extend_schema(
@@ -46,7 +50,7 @@ class SOrderListAPIViews(generics.ListAPIView):
 @extend_schema(
     responses={
         200: OpenApiResponse(
-            response=SOrderSerializer
+            response=SOrderDetailSerializer
         ),
         **COMMON_RESPONSES
     }
@@ -55,6 +59,60 @@ class SOrderDetailAPIView(generics.RetrieveAPIView):
     queryset = Order.objects.select_related('service', 'user', 'parent').filter(is_active=True)
     serializer_class = SOrderDetailSerializer
     permission_classes = [IsOwnerOrReadOnly]
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter("telegram_id", str, OpenApiParameter.QUERY, required=True)
+    ],
+    responses={
+        200: OpenApiResponse(
+            response=SOrderLinkListSerializer
+        ),
+        **COMMON_RESPONSES
+    }
+)
+class SOrderLinkListAPIView(generics.ListAPIView):
+    serializer_class = SOrderLinkListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = OrderLinkFilter
+    search_fields = ['link', 'channel_name']
+
+    def get_queryset(self):
+        user = self.request.user
+        telegram_id = self.request.query_params.get('telegram_id')
+        if not telegram_id:
+            return Order.objects.none()  # Telegram ID bo'lmasa, hech narsa qaytarmaymiz
+
+        three_days_ago = now() - timedelta(days=3)
+
+        # Subquery: Shu foydalanuvchi va telegram_id bilan OrderMember mavjudmi?
+        recent_member_qs = OrderMember.objects.filter(
+            order=OuterRef('pk'),
+            user=user,
+            telegram__telegram_id=telegram_id,
+            joined_at__gt=three_days_ago
+        )
+
+        any_member_qs = OrderMember.objects.filter(
+            order=OuterRef('pk'),
+            user=user,
+            telegram__telegram_id=telegram_id
+        )
+
+        return (
+            Order.objects
+            .select_related('service', 'user', 'parent')
+            .filter(is_active=True, status="PROCESSING")
+            .annotate(
+                has_recent_member=Exists(recent_member_qs),
+                has_any_member=Exists(any_member_qs)
+            )
+            .filter(
+                has_recent_member=False  # 3 kundan yangi bo‘lsa — SKIP
+            )
+        )
 
 
 @extend_schema(
@@ -123,6 +181,31 @@ class STelegramBackfillAPIView(APIView):
             "saved_to_db": save_result["created"],
             "already_in_db": save_result["existing"],
         }, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    request=SAddVipSerializer,
+    responses={
+        # 201: SAddVipSerializer,
+        201: {
+            'type': 'object',
+            'properties': {
+                'order_id': {'type': 'integer'},
+                'link': {'type': 'string'},
+                'channel_name': {'type': 'string'},
+            }
+        },
+        **COMMON_RESPONSES
+    },
+)
+class SAddVipAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = SAddVipSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "success"}, status=status.HTTP_201_CREATED)
 
 # class SOrderWithLinksChildCreateAPIView(APIView):
 #     permission_classes = [permissions.IsAuthenticated]

@@ -7,7 +7,7 @@ from service.models import Country, Service, Link
 class SCountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
-        fields = ['id', 'name', 'icon']
+        fields = ['id', 'name', 'icon', 'country_code']
 
 
 class SServiceSerializer(serializers.ModelSerializer):
@@ -17,12 +17,12 @@ class SServiceSerializer(serializers.ModelSerializer):
         fields = ['id', 'country', 'category', 'price', 'member', 'percent', 'post']
 
 
-class SLinkSerializer(serializers.ModelSerializer):
-    order = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    class Meta:
-        model = Link
-        fields = ['id', 'order', 'link', 'channel_name']
+# class SLinkSerializer(serializers.ModelSerializer):
+#     order = serializers.PrimaryKeyRelatedField(read_only=True)
+#
+#     class Meta:
+#         model = Link
+#         fields = ['id', 'order', 'link', 'channel_name']
 
 
 class SOrderWithLinksCreateSerializer(serializers.Serializer):

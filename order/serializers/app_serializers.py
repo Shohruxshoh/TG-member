@@ -1,22 +1,27 @@
 import re
 from rest_framework import serializers
+from django.shortcuts import get_object_or_404
 from django.db import transaction
-from balance.models import Balance
+from balance.models import Balance, Vip
 from service.models import Link, Service
-from order.models import Order
+from order.models import Order, OrderMember
+from users.models import TelegramAccount
+from datetime import timedelta
+from django.utils import timezone
 
 
 class SOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'service', 'status', 'price', 'member', 'service_category', 'created_at']
+        fields = ['id', 'service', 'status', 'price', 'member', 'link', 'channel_name', 'service_category',
+                  'created_at']
         read_only_fields = ['price', 'member', 'service_category', 'created_at']
 
 
 class SChildOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'status', 'price', 'member', 'service_category', 'created_at']
+        fields = ['id', 'status', 'price', 'member', 'service_category', 'link', 'channel_name', 'created_at']
 
 
 class SOrderDetailSerializer(serializers.ModelSerializer):
@@ -29,9 +34,15 @@ class SOrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'status', 'price', 'member', 'service_category', 'self_members', 'calculated_total',
-            'is_active', 'created_at', 'updated_at', 'children'
+            'id', 'user', 'status', 'price', 'member', 'service_category', 'link', 'channel_name', 'self_members',
+            'calculated_total', 'is_active', 'created_at', 'updated_at', 'children'
         ]
+
+
+class SOrderLinkListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['id', 'link', 'channel_name']
 
 
 # class SOrderWithLinksChildCreateSerializer(serializers.Serializer):
@@ -81,6 +92,7 @@ class SOrderDetailSerializer(serializers.ModelSerializer):
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
 
+
 class SOrderLinkCreateSerializer(serializers.Serializer):
     service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
     link = serializers.CharField(max_length=250, required=True)
@@ -114,7 +126,7 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
             )
 
             # Link yaratish
-            Link.objects.create(order=order, link=link, channel_name=channel_name)
+            # Link.objects.create(order=order, link=link, channel_name=channel_name)
 
             # Balansdan narxni ayirish
             balance.balance -= service.price
@@ -151,3 +163,56 @@ class STelegramBackfillSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         raise NotImplementedError("Update is not supported.")
+
+
+class SAddVipSerializer(serializers.Serializer):
+    telegram_id = serializers.IntegerField()
+    order_id = serializers.IntegerField()
+
+    def validate(self, attrs):
+        telegram_id = attrs.get("telegram_id")
+        order_id = attrs.get("order_id")
+
+        # TelegramAccount va Order obyektlarini olish
+        try:
+            telegram = TelegramAccount.objects.get(telegram_id=telegram_id, is_active=True)
+        except TelegramAccount.DoesNotExist:
+            raise serializers.ValidationError({"telegram_id": "Such a telegram does not exist or is inactive."})
+
+        try:
+            order = Order.objects.get(pk=order_id, is_active=True)
+        except Order.DoesNotExist:
+            raise serializers.ValidationError({"order_id": "Such an order does not exist or is inactive."})
+
+        # 3 kun ichida shu telegram orderda bormi?
+        three_days_ago = timezone.now() - timedelta(days=3)
+        recent_member_exists = OrderMember.objects.filter(
+            order=order,
+            telegram=telegram,
+            joined_at__gte=three_days_ago
+        ).exists()
+
+        if recent_member_exists:
+            raise serializers.ValidationError(
+                "This Telegram account has already joined this order within the last 3 days.")
+
+        attrs['telegram'] = telegram
+        attrs['order'] = order
+        return attrs
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            user = self.context['request'].user
+            telegram = validated_data['telegram']
+            order = validated_data['order']
+            vip = Vip.objects.filter(category=order.service_category).order_by('id').first()
+            if not vip:
+                raise serializers.ValidationError("No VIP configuration found for this category.")
+            OrderMember.objects.create(
+                telegram_id=telegram.id,
+                order_id=order.id,
+                user=user
+            )
+            user.user_balance.balance += vip.vip
+            user.user_balance.save()
+        return validated_data

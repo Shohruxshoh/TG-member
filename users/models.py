@@ -27,6 +27,7 @@ class User(AbstractUser):
 class TelegramAccount(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     telegram_id = models.CharField(max_length=200, unique=True)
+    country_code = models.CharField(max_length=200)
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

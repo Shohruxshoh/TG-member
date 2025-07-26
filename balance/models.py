@@ -3,6 +3,7 @@ from django.db import transaction
 import string
 import random
 from users.models import User
+from django.db.models import F
 
 
 # Create your models here.
@@ -16,35 +17,36 @@ class Balance(models.Model):
         return f"{self.user} - {self.balance}"
 
     def perform_balance_update(self, amount):
-        """
-        Balansni xavfsiz tarzda yangilaydi. Transaction ichida bajariladi.
-        """
+        if int(amount) < 0:
+            raise ValueError("Cannot add a negative value.")
+
         with transaction.atomic():
-            # So'nggi qiymatni bazadan olib kelamiz (race condition ehtimoli uchun)
+            updated = Balance.objects.filter(
+                pk=self.pk
+            ).update(balance=F('balance') + int(amount))
+
+            if not updated:
+                raise ValueError("Balance update error.")
+
             self.refresh_from_db()
-
-            new_balance = self.balance + int(amount)
-            if new_balance < 0:
-                raise ValueError("Balans manfiy bo‘lishi mumkin emas.")
-
-            self.balance = new_balance
-            self.save()
             return self.balance
 
     def perform_balance_subtraction_update(self, amount):
-        """
-        Balansni xavfsiz tarzda yangilaydi. Transaction ichida bajariladi.
-        """
+        amount = int(amount)
         with transaction.atomic():
-            # So'nggi qiymatni bazadan olib kelamiz (race condition ehtimoli uchun)
             self.refresh_from_db()
 
-            new_balance = self.balance - int(amount)
-            if new_balance < 0:
-                raise ValueError("Balans manfiy bo‘lishi mumkin emas.")
+            if self.balance < amount:
+                raise ValueError("Insufficient balance.")
 
-            self.balance = new_balance
-            self.save()
+            updated = Balance.objects.filter(
+                pk=self.pk
+            ).update(balance=F('balance') - amount)
+
+            if not updated:
+                raise ValueError("Balance update error.")
+
+            self.refresh_from_db()
             return self.balance
 
 
@@ -87,6 +89,9 @@ class GiftUsage(models.Model):
 
     class Meta:
         unique_together = ['user', 'gift']  # Har bir user faqat bir marta foydalansin
+        indexes = [
+            models.Index(fields=["user", "gift"]),
+        ]
 
     def __str__(self):
         return f"{self.user.username} used {self.gift.gift}"
@@ -110,6 +115,7 @@ class Buy(models.Model):
     def __str__(self):
         return f"Coin: {self.coin}- Price: {self.price}"
 
+
 class OrderBuy(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     buy = models.ForeignKey(Buy, on_delete=models.PROTECT)
@@ -121,3 +127,20 @@ class OrderBuy(models.Model):
 
     def __str__(self):
         return f"Coin: {self.coin}- Price: {self.price}"
+
+
+class Vip(models.Model):
+    CHOOSE_CATEGORY = (
+        ("PREMIUM", 'Premium'),
+        ("VIEW", 'View'),
+        ("REACTION", 'Reaction'),
+        ("MEMBER", 'Member'),
+    )
+    vip = models.PositiveIntegerField(default=0)
+    category = models.CharField(max_length=20, choices=CHOOSE_CATEGORY, default="MEMBER", db_index=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.category

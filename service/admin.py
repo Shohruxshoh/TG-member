@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Country, Service, Link
+from .models import Country, Service
 
 
 @admin.register(Country)
@@ -15,7 +15,7 @@ class ServiceAdmin(admin.ModelAdmin):
     search_fields = ('category',)
 
 
-@admin.register(Link)
-class LinkAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'link', 'created_at')
-    search_fields = ('link',)
+# @admin.register(Link)
+# class LinkAdmin(admin.ModelAdmin):
+#     list_display = ('id', 'order', 'link', 'created_at')
+#     search_fields = ('link',)
