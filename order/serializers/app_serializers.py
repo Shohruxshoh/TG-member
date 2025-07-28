@@ -119,6 +119,8 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
                 member=service.member,
                 service_category=service.category,
                 price=service.price,
+                link=link,
+                channel_name=channel_name,
                 status='PENDING',
             )
 
