@@ -81,7 +81,7 @@ class SGiftActivateSerializer(serializers.Serializer):
             raise serializers.ValidationError("No such gift code exists.")
 
         # --- YANGI TEKSHIRUV ---
-        now = timezone.now()
+        now = timezone.now().date()
 
         if gift.expires_at:
             if not gift.is_active or gift.expires_at < now:

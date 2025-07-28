@@ -1,9 +1,10 @@
 import re
+from django.db.models import F
 from rest_framework import serializers
-from django.shortcuts import get_object_or_404
 from django.db import transaction
+from rest_framework.exceptions import ValidationError
 from balance.models import Balance, Vip
-from service.models import Link, Service
+from service.models import Service
 from order.models import Order, OrderMember
 from users.models import TelegramAccount
 from datetime import timedelta
@@ -89,10 +90,6 @@ class SOrderLinkListSerializer(serializers.ModelSerializer):
 #         }
 
 
-from rest_framework.exceptions import ValidationError
-from django.db import transaction
-
-
 class SOrderLinkCreateSerializer(serializers.Serializer):
     service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
     link = serializers.CharField(max_length=250, required=True)
@@ -129,8 +126,9 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
             # Link.objects.create(order=order, link=link, channel_name=channel_name)
 
             # Balansdan narxni ayirish
-            balance.balance -= service.price
+            balance.balance = F('balance') - service.price
             balance.save()
+            balance.refresh_from_db()
 
             return {
                 "order_id": order.pk,
@@ -205,7 +203,7 @@ class SAddVipSerializer(serializers.Serializer):
             user = self.context['request'].user
             telegram = validated_data['telegram']
             order = validated_data['order']
-            vip = Vip.objects.filter(category=order.service_category).order_by('id').first()
+            vip = Vip.objects.filter(category=order.service_category, is_active=True).first()
             if not vip:
                 raise serializers.ValidationError("No VIP configuration found for this category.")
             OrderMember.objects.create(
@@ -213,6 +211,7 @@ class SAddVipSerializer(serializers.Serializer):
                 order_id=order.id,
                 user=user
             )
-            user.user_balance.balance += vip.vip
+            user.user_balance.balance = F('balance') + vip.vip
             user.user_balance.save()
+            user.user_balance.refresh_from_db()
         return validated_data
