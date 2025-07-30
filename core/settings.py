@@ -234,6 +234,8 @@ TELEGRAM_API_HASH = '4b3a297daf243228aa9ae085d775f411'
 TELEGRAM_SESSION_NAME = 'tg_session'
 
 
+import os
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -247,15 +249,16 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'logs/orders.log',
+            'filename': os.path.join(BASE_DIR, 'logs', 'orders.log'),
             'formatter': 'verbose',
         },
     },
     'loggers': {
-        'order': {  # o'rniga app nomini yozing
+        'order': {
             'handlers': ['file'],
             'level': 'INFO',
             'propagate': True,
         },
     },
 }
+
