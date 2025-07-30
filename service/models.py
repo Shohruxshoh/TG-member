@@ -3,6 +3,14 @@ from django.db import models
 
 # Create your models here.
 
+class DayOption(models.Model):
+    day = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.day)
+
+
 class Country(models.Model):
     name = models.CharField(max_length=200, unique=True)
     icon = models.CharField(max_length=255, null=True, blank=True)
@@ -22,8 +30,9 @@ class Service(models.Model):
         ("REACTION", 'Reaction'),
         ("MEMBER", 'Member'),
     )
-    country = models.ForeignKey(Country, on_delete=models.PROTECT, db_index=True)
+    country = models.ForeignKey(Country, on_delete=models.PROTECT)
     category = models.CharField(max_length=20, choices=CHOOSE_CATEGORY, default="MEMBER", db_index=True)
+    day = models.ForeignKey(DayOption, on_delete=models.SET_NULL, null=True)
     price = models.PositiveIntegerField(default=0)
     member = models.PositiveIntegerField(default=0)
     percent = models.PositiveIntegerField(default=0)

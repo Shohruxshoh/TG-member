@@ -1,11 +1,23 @@
 services:
   web:
     build: .
-    command: gunicorn core.wsgi:application --bind 0.0.0.0:8080
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8080 --workers 10 --threads 2 --timeout 120 --log-level info
     volumes:
       - .:/app
+    expose:
+      - "8080"
+
+  nginx:
+    image: nginx:alpine
     ports:
-      - "8080:8080"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./static:/app/static
+      - ./media:/app/media
+    depends_on:
+      - web
+
 #    env_file:
 #      - .env
 #    depends_on:

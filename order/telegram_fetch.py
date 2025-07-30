@@ -1,7 +1,6 @@
 import re
 from django.conf import settings
 from telethon import TelegramClient
-from telethon.errors import RPCError
 
 TELEGRAM_URL_RE = re.compile(r"^https?://t\.me/(c/)?([^/]+)/(\d+)/?$", re.IGNORECASE)
 
@@ -38,6 +37,7 @@ async def fetch_prior_message_urls(url: str, count: int):
             raise RuntimeError("Telethon session autorize qilinmagan. Avval CLI orqali login qiling.")
 
         entity = await client.get_entity(username_like)
+        count -= 1 if count > 1 else 0
 
         # t.me/c/... yoki t.me/<username>/... shaklini to‘g‘ri yasash
         if username_like.startswith("c/"):
@@ -48,6 +48,7 @@ async def fetch_prior_message_urls(url: str, count: int):
         urls = [f"https://t.me/{base_part}/{ref_msg_id}"]
 
         async for msg in client.iter_messages(entity, offset_id=ref_msg_id, limit=count):
+            print(50, f"https://t.me/{base_part}/{msg.id}")
             urls.append(f"https://t.me/{base_part}/{msg.id}")
 
     return urls

@@ -9,6 +9,9 @@ from order.models import Order, OrderMember
 from users.models import TelegramAccount
 from datetime import timedelta
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SOrderSerializer(serializers.ModelSerializer):
@@ -35,8 +38,8 @@ class SOrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'user', 'status', 'price', 'member', 'service_category', 'link', 'channel_name', 'self_members',
-            'calculated_total', 'is_active', 'created_at', 'updated_at', 'children'
+            'id', 'user', 'status', 'price', 'member', 'service_category', 'link', 'channel_name', 'channel_id', 'day',
+            'self_members', 'calculated_total', 'is_active', 'created_at', 'updated_at', 'children'
         ]
 
 
@@ -94,6 +97,7 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
     service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
     link = serializers.CharField(max_length=250, required=True)
     channel_name = serializers.CharField(max_length=200)
+    channel_id = serializers.CharField(max_length=200)
 
     def create(self, validated_data):
         with transaction.atomic():
@@ -101,15 +105,20 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
             service = validated_data['service']
             link = validated_data['link']
             channel_name = validated_data['channel_name']
+            channel_id = validated_data['channel_id']
+
+            logger.info(f"User {user.id} is creating an order for service {service.id}")
 
             # Foydalanuvchi balansi
             try:
                 balance = user.user_balance
             except Balance.DoesNotExist:
+                logger.error(f"Balance not found for user {user.id}")
                 raise ValidationError("User balance not found.")
 
             # Balans yetarli ekanligini tekshirish
             if balance.balance < service.price:
+                logger.warning(f"User {user.id} has insufficient balance: {balance.balance}, required: {service.price}")
                 raise ValidationError("Your balance is insufficient.")
 
             # Order yaratish
@@ -121,16 +130,20 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
                 price=service.price,
                 link=link,
                 channel_name=channel_name,
+                channel_id=channel_id,
+                day=service.day.day,
                 status='PENDING',
             )
 
-            # Link yaratish
-            # Link.objects.create(order=order, link=link, channel_name=channel_name)
+            logger.info(f"Order {order.id} created by user {user.id}")
 
             # Balansdan narxni ayirish
             balance.balance = F('balance') - service.price
             balance.save()
             balance.refresh_from_db()
+
+            logger.info(
+                f"User {user.id} balance updated after creating order {order.id}. New balance: {balance.balance}")
 
             return {
                 "order_id": order.pk,
@@ -146,6 +159,8 @@ class STelegramBackfillSerializer(serializers.Serializer):
     service_id = serializers.IntegerField()
     url = serializers.URLField()
     count = serializers.IntegerField(min_value=1, max_value=500, required=False, default=50)
+    channel_id = serializers.CharField(max_length=200)
+    channel_name = serializers.CharField(max_length=200)
 
     def validate_url(self, value: str):
         if not _TELEGRAM_URL_VALID_RE.match(value.strip()):

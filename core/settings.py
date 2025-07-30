@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_spectacular',
     'corsheaders',
-    'silk',
+    # 'silk',
 
     'users',
     'service',
@@ -64,7 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'silk.middleware.SilkyMiddleware',
+    # 'silk.middleware.SilkyMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls.urls'
@@ -95,7 +95,17 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'tg_member',
+#         'USER': 'postgres',
+#         'PASSWORD': 'admin',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#         'CONN_MAX_AGE': 60,
+#     }
+# }
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -213,12 +223,39 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-SILKY_PYTHON_PROFILER = True
-SILKY_AUTHENTICATION = True
-SILKY_AUTHORISATION = True
-SILKY_MAX_RESPONSE_BODY_SIZE = 1024
-SILKY_INTERCEPT_PERCENT = 100  # Devda hammasi
+# SILKY_PYTHON_PROFILER = True
+# SILKY_AUTHENTICATION = True
+# SILKY_AUTHORISATION = True
+# SILKY_MAX_RESPONSE_BODY_SIZE = 1024
+# SILKY_INTERCEPT_PERCENT = 100  # Devda hammasi
 
 TELEGRAM_API_ID = 26047327
 TELEGRAM_API_HASH = '4b3a297daf243228aa9ae085d775f411'
 TELEGRAM_SESSION_NAME = 'tg_session'
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} [{name}] {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'logs/orders.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'order': {  # o'rniga app nomini yozing
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

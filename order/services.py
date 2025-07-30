@@ -6,7 +6,7 @@ from order.models import Order
 from decimal import Decimal
 
 
-def save_links_for_order(service: Service, user, urls: list[str]) -> dict:
+def save_links_for_order(service: Service, user, urls: list[str], channel_name, channel_id) -> dict:
     """
     Parent order yaratadi, har bir noyob URL uchun child order qo'shadi,
     lekin barcha Link-lar parent orderga ulanadi.
@@ -30,6 +30,8 @@ def save_links_for_order(service: Service, user, urls: list[str]) -> dict:
                 seen.add(u)
                 cleaned.append(u)
 
+    print(33, cleaned)
+
     if not cleaned:
         return {"existing": len(urls), "created": 0}
 
@@ -40,7 +42,11 @@ def save_links_for_order(service: Service, user, urls: list[str]) -> dict:
             service=service,
             member=service.member,
             service_category=service.category,
+            day=service.day.day,
             price=service.price,
+            link=cleaned[0],
+            channel_name=channel_name,
+            channel_id=channel_id,
             status="PENDING",
         )
 
@@ -56,9 +62,13 @@ def save_links_for_order(service: Service, user, urls: list[str]) -> dict:
                 member=service.member,
                 service_category=service.category,
                 price=unit_price,
+                day=service.day.day,
+                link=url,
+                channel_name=channel_name,
+                channel_id=channel_id,
                 status="PENDING",
             )
-            for _ in cleaned
+            for url in cleaned
         ]
         Order.objects.bulk_create(child_orders)
 

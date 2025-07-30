@@ -3,8 +3,9 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from users.views.app_views import SRegisterView, SRegisterGoogleView, SLoginGoogleView, SPasswordChangeView, SPasswordResetEmailView, \
-    SPasswordResetConfirmTemplateView, SUserMeAPIView, SUserChangeAPIView, STelegramAccountAPIView
+from users.views.app_views import SRegisterView, SRegisterGoogleView, SLoginGoogleView, SPasswordChangeView, \
+    SPasswordResetEmailView, SPasswordResetConfirmTemplateView, SUserMeAPIView, SUserChangeAPIView, \
+    STelegramAccountAPIView
 
 urlpatterns = [
     path('register/', SRegisterView.as_view()),

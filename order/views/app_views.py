@@ -164,6 +164,8 @@ class STelegramBackfillAPIView(APIView):
         service_id = serializer.validated_data["service_id"]
         url = serializer.validated_data["url"]
         count = serializer.validated_data["count"]
+        channel_name = serializer.validated_data["channel_name"]
+        channel_id = serializer.validated_data["channel_id"]
 
         service = get_object_or_404(Service, pk=service_id)
 
@@ -173,7 +175,7 @@ class STelegramBackfillAPIView(APIView):
         except Exception as e:
             return Response({"detail": f"Telegramdan olishda xatolik: {e}"}, status=status.HTTP_400_BAD_REQUEST)
         # Sync DB yozuvlari
-        save_result = save_links_for_order(service, request.user, urls)
+        save_result = save_links_for_order(service, request.user, urls, channel_name, channel_id)
 
         return Response({
             "requested": count,

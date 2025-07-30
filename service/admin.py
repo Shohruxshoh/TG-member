@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Country, Service
+from .models import Country, Service, DayOption
 
 
 @admin.register(Country)
@@ -14,6 +14,7 @@ class ServiceAdmin(admin.ModelAdmin):
     list_filter = ('country', 'category')
     search_fields = ('category',)
 
+admin.site.register(DayOption)
 
 # @admin.register(Link)
 # class LinkAdmin(admin.ModelAdmin):
