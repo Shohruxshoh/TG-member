@@ -46,20 +46,19 @@ class Order(models.Model):
         ("COMPLETED", 'Completed'),
         ("FAILED", 'Failed'),
     )
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children',
-                               db_index=True)
-    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, db_index=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True)
     status = models.CharField(max_length=20, choices=CHOOSE_STATUS, default="PENDING", db_index=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     link = models.CharField(max_length=200)
     channel_name = models.CharField(max_length=200)
     channel_id = models.CharField(max_length=200)
-    price = models.PositiveIntegerField(default=0)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     member = models.PositiveIntegerField(default=0)
     service_category = models.CharField(max_length=200, null=True, blank=True, db_index=True)
     day = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = OrderManager()

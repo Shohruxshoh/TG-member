@@ -99,9 +99,9 @@ class GiftUsage(models.Model):
 
 class Buy(models.Model):
     coin = models.PositiveIntegerField(default=0)
-    price = models.FloatField(default=0)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     percent = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True, db_index=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,11 +117,17 @@ class Buy(models.Model):
 
 
 class OrderBuy(models.Model):
+    CURRENCY = (
+        ("SO'M", "so'm"),
+        ("DOLLAR", "dollar"),
+        ("RUBLI", "rubli"),
+    )
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     buy = models.ForeignKey(Buy, on_delete=models.PROTECT)
     coin = models.PositiveIntegerField(default=0)
-    price = models.FloatField(default=0)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_paid = models.BooleanField(default=False)
+    currency = models.CharField(max_length=10, choices=CURRENCY, default="so'm")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -144,3 +150,14 @@ class Vip(models.Model):
 
     def __str__(self):
         return self.category
+
+
+class Currency(models.Model):
+    som = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    rubli = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"So'm: {self.som}- rubli: {self.rubli}"

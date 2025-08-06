@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from order.models import Order, OrderMember
 from order.permissions import IsOwnerOrReadOnly
 from order.serializers.app_serializers import SOrderSerializer, SOrderDetailSerializer, SOrderLinkCreateSerializer, \
-    STelegramBackfillSerializer, SAddVipSerializer, SOrderLinkListSerializer
+    STelegramBackfillSerializer, SAddVipSerializer, SOrderLinkListSerializer, SCheckAddedChannelSerializer
 from order.filters import OrderFilter, OrderLinkFilter
 from order.services import save_links_for_order
 from order.telegram_fetch import fetch_prior_message_urls
@@ -17,8 +17,7 @@ from asgiref.sync import async_to_sync
 from service.schemas import COMMON_RESPONSES
 from django.utils.timezone import now
 from datetime import timedelta
-from django.db.models import OuterRef, Subquery, Exists
-from django.db.models.functions import Now
+from django.db.models import F, OuterRef, Subquery, Exists, Count, Q
 
 
 @extend_schema(
@@ -79,40 +78,47 @@ class SOrderLinkListAPIView(generics.ListAPIView):
     filterset_class = OrderLinkFilter
     search_fields = ['link', 'channel_name']
 
+    # @silk_profile(name='Order queryset profiling')
     def get_queryset(self):
         user = self.request.user
         telegram_id = self.request.query_params.get('telegram_id')
         if not telegram_id:
-            return Order.objects.none()  # Telegram ID bo'lmasa, hech narsa qaytarmaymiz
+            return Order.objects.none()
 
         three_days_ago = now() - timedelta(days=3)
 
-        # Subquery: Shu foydalanuvchi va telegram_id bilan OrderMember mavjudmi?
-        recent_member_qs = OrderMember.objects.filter(
-            order=OuterRef('pk'),
-            user=user,
-            telegram__telegram_id=telegram_id,
-            joined_at__gt=three_days_ago
-        )
-
-        any_member_qs = OrderMember.objects.filter(
+        # Foydalanuvchi ushbu orderda mavjudmi? (umuman)
+        any_member_qs = OrderMember.objects.select_related('order', 'telegram', 'user').filter(
             order=OuterRef('pk'),
             user=user,
             telegram__telegram_id=telegram_id
         )
-
-        return (
+        # 3 kun ichida mavjudmi?
+        recent_member_qs = any_member_qs.filter(
+            joined_at__gt=three_days_ago
+        )
+        # Orderga qo‘shilgan a'zolar sonini hisoblaymiz
+        # member_count_qs = OrderMember.objects.filter(
+        #     order=OuterRef('pk'),
+        #     is_active=True
+        # ).values('order').annotate(count=Count('id')).values('count')
+        queryset = (
             Order.objects
             .select_related('service', 'user', 'parent')
-            .filter(is_active=True, status="PROCESSING")
             .annotate(
+                has_any_member=Exists(any_member_qs),
                 has_recent_member=Exists(recent_member_qs),
-                has_any_member=Exists(any_member_qs)
+                # member_count=Subquery(member_count_qs, output_field=models.IntegerField())
             )
             .filter(
-                has_recent_member=False  # 3 kundan yangi bo‘lsa — SKIP
-            )
+                is_active=True,
+                status='PROCESSING',
+                has_recent_member=False,
+                # member_count__lt=F('member')  # limitdan oshmagan bo‘lishi kerak
+            ).values('id', 'link', 'channel_name')
         )
+
+        return queryset
 
 
 @extend_schema(
@@ -158,7 +164,7 @@ class STelegramBackfillAPIView(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        serializer = STelegramBackfillSerializer(data=request.data)
+        serializer = STelegramBackfillSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
         service_id = serializer.validated_data["service_id"]
@@ -208,6 +214,30 @@ class SAddVipAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "success"}, status=status.HTTP_201_CREATED)
+
+
+class SCheckAddedChannelAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        request=SCheckAddedChannelSerializer,
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'boolean'},
+                }
+            },
+            **COMMON_RESPONSES
+        },
+        description="""Returns false if the user is subscribed, true otherwise."""
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = SCheckAddedChannelSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        is_recent_member = serializer.validated_data['is_recent_member']
+        return Response({"message": not is_recent_member}, status=status.HTTP_200_OK)
 
 # class SOrderWithLinksChildCreateAPIView(APIView):
 #     permission_classes = [permissions.IsAuthenticated]

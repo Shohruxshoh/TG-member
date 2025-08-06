@@ -33,6 +33,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,12 +47,15 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_spectacular',
     'corsheaders',
+    'channels',
     # 'silk',
 
     'users',
     'service',
     'order',
     'balance',
+    'notification',
+    'payment',
     # 'telegram',
 ]
 
@@ -84,7 +88,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+# WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'  # loyihangiz nomi asosida
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -101,9 +106,9 @@ DATABASES = {
 #         'NAME': 'tg_member',
 #         'USER': 'postgres',
 #         'PASSWORD': 'admin',
-#         'HOST': 'localhost',
+#         'HOST': 'db_master',
 #         'PORT': '5432',
-#         'CONN_MAX_AGE': 60,
+#         'CONN_MAX_AGE': 0
 #     }
 # }
 # Password validation
@@ -166,6 +171,7 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'TG Member description',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    "COMPONENT_SPLIT_REQUEST": True,
     # OTHER SETTINGS
     "SCHEMA_PATH_PREFIX": r"/api/(admin|app)",
     "SERVERS": [
@@ -233,7 +239,6 @@ TELEGRAM_API_ID = 26047327
 TELEGRAM_API_HASH = '4b3a297daf243228aa9ae085d775f411'
 TELEGRAM_SESSION_NAME = 'tg_session'
 
-
 import os
 
 LOGGING = {
@@ -262,3 +267,11 @@ LOGGING = {
     },
 }
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [("redis", 6379)],  # local Redis server
+        },
+    },
+}
