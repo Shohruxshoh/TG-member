@@ -4,6 +4,7 @@ from rest_framework import permissions, generics, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from order.models import Order, OrderMember
+from users.models import TelegramAccount
 from order.permissions import IsOwnerOrReadOnly
 from order.serializers.app_serializers import SOrderSerializer, SOrderDetailSerializer, SOrderLinkCreateSerializer, \
     STelegramBackfillSerializer, SAddVipSerializer, SOrderLinkListSerializer, SCheckAddedChannelSerializer
@@ -62,12 +63,19 @@ class SOrderDetailAPIView(generics.RetrieveAPIView):
 
 @extend_schema(
     parameters=[
-        OpenApiParameter("telegram_id", str, OpenApiParameter.QUERY, required=True)
+        OpenApiParameter(
+            name="telegram_id",
+            type=str,
+            location=OpenApiParameter.QUERY,
+            required=True,
+            many=True,
+            style='form',
+            explode=True,
+            description="Telegram ID lar ro'yxati (?telegram_id=123&telegram_id=456)"
+        )
     ],
     responses={
-        200: OpenApiResponse(
-            response=SOrderLinkListSerializer
-        ),
+        200: OpenApiResponse(response=SOrderLinkListSerializer),
         **COMMON_RESPONSES
     }
 )
@@ -78,47 +86,55 @@ class SOrderLinkListAPIView(generics.ListAPIView):
     filterset_class = OrderLinkFilter
     search_fields = ['link', 'channel_name']
 
-    # @silk_profile(name='Order queryset profiling')
     def get_queryset(self):
         user = self.request.user
-        telegram_id = self.request.query_params.get('telegram_id')
-        if not telegram_id:
+        telegram_ids = self.request.query_params.getlist('telegram_id')
+
+        if not telegram_ids:
+            return Order.objects.none()
+
+        # Faqat kerakli TelegramAccount larni olib kelamiz (id + country_code)
+        telegram_accounts = TelegramAccount.objects.filter(
+            telegram_id__in=telegram_ids,
+            is_active=True
+        ).values('id', 'country_code')
+
+        telegram_account_ids = [item['id'] for item in telegram_accounts]
+        country_codes = list({item['country_code'] for item in telegram_accounts})
+
+        if not telegram_account_ids:
             return Order.objects.none()
 
         three_days_ago = now() - timedelta(days=3)
 
-        # Foydalanuvchi ushbu orderda mavjudmi? (umuman)
-        any_member_qs = OrderMember.objects.select_related('order', 'telegram', 'user').filter(
+        # OrderMember subquery: foydalanuvchi bu orderga bog‘langanmi
+        any_member_qs = OrderMember.objects.filter(
             order=OuterRef('pk'),
             user=user,
-            telegram__telegram_id=telegram_id
+            telegram_id__in=telegram_account_ids
         )
-        # 3 kun ichida mavjudmi?
+
+        # Subquery: 3 kun ichida a’zo bo‘lganmi
         recent_member_qs = any_member_qs.filter(
             joined_at__gt=three_days_ago
         )
-        # Orderga qo‘shilgan a'zolar sonini hisoblaymiz
-        # member_count_qs = OrderMember.objects.filter(
-        #     order=OuterRef('pk'),
-        #     is_active=True
-        # ).values('order').annotate(count=Count('id')).values('count')
-        queryset = (
+
+        # Yakuniy order queryset
+        return (
             Order.objects
-            .select_related('service', 'user', 'parent')
+            .select_related('service', 'user', 'parent')  # optimize joinlar
             .annotate(
                 has_any_member=Exists(any_member_qs),
                 has_recent_member=Exists(recent_member_qs),
-                # member_count=Subquery(member_count_qs, output_field=models.IntegerField())
             )
             .filter(
                 is_active=True,
                 status='PROCESSING',
                 has_recent_member=False,
-                # member_count__lt=F('member')  # limitdan oshmagan bo‘lishi kerak
-            ).values('id', 'link', 'channel_name')
+                country_code__in=country_codes
+            )
+            .values('id', 'link', 'channel_name', 'country_code')
         )
-
-        return queryset
 
 
 @extend_schema(
@@ -212,8 +228,18 @@ class SAddVipAPIView(APIView):
     def post(self, request):
         serializer = SAddVipSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"message": "success"}, status=status.HTTP_201_CREATED)
+        created_members = serializer.save()
+        results = [
+            {
+                "order_id": m.order.id,
+                "channel_name": m.order.channel_name,
+                "link": m.order.link,
+                "telegram_id": m.telegram.telegram_id,
+                "created_at": m.joined_at,
+            }
+            for m in created_members
+        ]
+        return Response({"results": results}, status=status.HTTP_201_CREATED)
 
 
 class SCheckAddedChannelAPIView(APIView):

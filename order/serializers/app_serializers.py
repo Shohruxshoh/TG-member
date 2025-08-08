@@ -47,7 +47,7 @@ class SOrderDetailSerializer(serializers.ModelSerializer):
 class SOrderLinkListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'link', 'channel_name']
+        fields = ['id', 'link', 'channel_name', 'country_code']
 
 
 # class SOrderWithLinksChildCreateSerializer(serializers.Serializer):
@@ -132,6 +132,7 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
                 link=link,
                 channel_name=channel_name,
                 channel_id=channel_id,
+                country_code=service.country.country_code,
                 day=service.day.day,
                 status='PENDING',
             )
@@ -202,81 +203,97 @@ class STelegramBackfillSerializer(serializers.Serializer):
 
 
 class SAddVipSerializer(serializers.Serializer):
-    telegram_id = serializers.IntegerField()
-    order_id = serializers.IntegerField()
+    telegram_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False
+    )
+    order_id = serializers.IntegerField(min_value=1)
 
     def validate(self, attrs):
-        telegram_id = attrs.get("telegram_id")
-        order_id = attrs.get("order_id")
-
-        # TelegramAccount va Order obyektlarini olish
-        try:
-            telegram = TelegramAccount.objects.get(telegram_id=telegram_id, is_active=True)
-        except TelegramAccount.DoesNotExist:
-            raise serializers.ValidationError({"telegram_id": "Such a telegram does not exist or is inactive."})
+        telegram_ids = attrs['telegram_ids']
+        order_id = attrs['order_id']
 
         try:
             order = Order.objects.get(pk=order_id, is_active=True)
         except Order.DoesNotExist:
-            raise serializers.ValidationError({"order_id": "Such an order does not exist or is inactive."})
+            raise serializers.ValidationError({"order_id": "Order not found or inactive."})
 
-        # 3 kun ichida shu telegram orderda bormi?
         three_days_ago = timezone.now() - timedelta(days=3)
-        recent_member_exists = OrderMember.objects.select_related('order', 'telegram', 'user').filter(
+
+        # Barcha TelegramAccount'larni bitta so‘rov bilan olib kelamiz
+        telegrams = TelegramAccount.objects.filter(
+            telegram_id__in=telegram_ids,
+            is_active=True,
+            country_code=order.country_code
+        )
+
+        # Faqat orderga oxirgi 3 kunda qo‘shilmaganlar
+        existing_recent_members = set(OrderMember.objects.filter(
             order=order,
-            telegram=telegram,
+            telegram__telegram_id__in=telegram_ids,
             joined_at__gte=three_days_ago
-        ).exists()
+        ).values_list("telegram__telegram_id", flat=True))
 
-        if recent_member_exists:
-            raise serializers.ValidationError(
-                "This Telegram account has already joined this order within the last 3 days.")
+        # Toza ro‘yxat
+        valid_telegrams = [
+            tg for tg in telegrams
+            if tg.telegram_id not in existing_recent_members
+        ]
 
-        attrs['telegram'] = telegram
+        if not valid_telegrams:
+            raise serializers.ValidationError({"telegram_ids": "No valid Telegram accounts to add."})
+
         attrs['order'] = order
+        attrs['valid_telegrams'] = valid_telegrams
         return attrs
 
     def create(self, validated_data):
         user = self.context['request'].user
-        telegram = validated_data['telegram']
-        order_id = validated_data['order'].id
+        order = validated_data['order']
+        telegrams = validated_data['valid_telegrams']
 
         with transaction.atomic():
-            # Orderni locklab olamiz (race conditionni oldini olish uchun)
-            order = Order.objects.select_for_update().get(id=order_id)
+            # Order lock
+            order = Order.objects.select_for_update().get(id=order.id)
 
-            # OrderMember sonini hisoblaymiz (faqat active lar)
-            current_count = OrderMember.objects.select_related('order', 'telegram', 'user').filter(order=order,
-                                                                                                   is_active=True).count()
+            current_count = OrderMember.objects.filter(order=order, is_active=True).count()
+            remaining_slots = order.member - current_count
+            if remaining_slots <= 0:
+                raise serializers.ValidationError("Order is already full.")
 
-            if current_count >= order.member:
-                raise serializers.ValidationError("This order has reached the maximum number of members.")
+            selected_telegrams = telegrams[:remaining_slots]
 
-            # VIPni olish
             vip = Vip.objects.filter(category=order.service_category, is_active=True).first()
             if not vip:
-                raise serializers.ValidationError("No VIP configuration found for this category.")
+                raise serializers.ValidationError("VIP config not found for this category.")
 
-            # OrderMember yozamiz
-            OrderMember.objects.create(
-                telegram_id=telegram.id,
-                order_id=order.id,
-                user=user
-            )
+            now = timezone.now()
+            members_to_create = [
+                OrderMember(
+                    telegram=tg,
+                    user=user,
+                    order=order,
+                    member_duration=order.day,
+                    vip=vip.vip,
+                    is_active=True,
+                    joined_at=now
+                )
+                for tg in selected_telegrams
+            ]
+            created_members = OrderMember.objects.bulk_create(members_to_create, batch_size=50)
 
-            # Balansga qo‘shamiz
-            user.user_balance.balance = F('balance') + vip.vip
-            user.user_balance.save()
-            user.user_balance.refresh_from_db()
+            # # Balans yangilash (F expression orqali — parallelizmga chidamli)
+            # from django.db.models import F
+            # user.user_balance.__class__.objects.filter(user=user).update(
+            #     balance=F('balance') + vip.vip * len(created_members)
+            # )
+
+            # Agar to‘ldi, statusni yangilash
             if order.member == order.self_members:
                 order.status = 'COMPLETED'
-                order.save()
+                order.save(update_fields=['status'])
 
-        return {
-            "order_id": order.id,
-            "link": order.link,
-            "channel_name": order.channel_name
-        }
+        return created_members
 
 
 class SCheckAddedChannelSerializer(serializers.Serializer):

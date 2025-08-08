@@ -13,4 +13,4 @@ class OrderFilter(filters.FilterSet):
 class OrderLinkFilter(filters.FilterSet):
     class Meta:
         model = Order
-        fields = ['service__category', 'service__country__country_code']
+        fields = ['service__category']

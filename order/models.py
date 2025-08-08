@@ -56,12 +56,19 @@ class Order(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     member = models.PositiveIntegerField(default=0)
     service_category = models.CharField(max_length=200, null=True, blank=True, db_index=True)
+    country_code = models.CharField(max_length=200, null=True, blank=True, db_index=True)
     day = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = OrderManager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['is_active', 'created_at']),
+        ]
 
     def __str__(self):
         return f"Order#{self.pk} by {self.user}"
@@ -88,7 +95,7 @@ class OrderMember(models.Model):
     telegram = models.ForeignKey(TelegramAccount, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     vip = models.PositiveIntegerField(default=0)
-    day = models.PositiveIntegerField(default=0)
+    member_duration = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 

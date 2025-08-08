@@ -47,6 +47,7 @@ def save_links_for_order(service: Service, user, urls: list[str], channel_name, 
             link=cleaned[0],
             channel_name=channel_name,
             channel_id=channel_id,
+            country_code=service.country.country_code,
             status="PENDING",
         )
 

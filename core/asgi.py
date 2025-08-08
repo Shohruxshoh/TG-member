@@ -14,5 +14,4 @@ application = ProtocolTypeRouter({
         )
     ),
 })
-print("🔌 WebSocket routing loaded:", notification.routing.websocket_urlpatterns)
 
