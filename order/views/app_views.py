@@ -1,5 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter, OpenApiExample
 from rest_framework import permissions, generics, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from order.telegram_fetch import fetch_prior_message_urls
 from service.models import Service
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
+from collections import defaultdict
 from asgiref.sync import async_to_sync
 from service.schemas import COMMON_RESPONSES
 from django.utils.timezone import now
@@ -217,6 +218,8 @@ class STelegramBackfillAPIView(APIView):
                 'order_id': {'type': 'integer'},
                 'link': {'type': 'string'},
                 'channel_name': {'type': 'string'},
+                'telegram_id': {'type': 'string'},
+                'created_at': {'type': 'string'},
             }
         },
         **COMMON_RESPONSES
@@ -264,6 +267,93 @@ class SCheckAddedChannelAPIView(APIView):
 
         is_recent_member = serializer.validated_data['is_recent_member']
         return Response({"message": not is_recent_member}, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    summary="Foydalanuvchi Telegram accountlariga tegishli channel_id'lar ro'yxati",
+    description=(
+            "Login qilgan foydalanuvchining barcha Telegram accountlarini tekshiradi "
+            "va ularga ulangan Orderlardan channel_id'larni qaytaradi."
+    ),
+    responses={
+        200: {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "telegram_id": {"type": "string", "example": "11111111"},
+                    "channels": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "channel_id": {"type": "string", "example": "123"}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    examples=[
+        OpenApiExample(
+            name="Oddiy javob",
+            value=[
+                {
+                    "telegram_id": "11111111",
+                    "channels": [
+                        {"channel_id": "123"},
+                        {"channel_id": "456"}
+                    ]
+                },
+                {
+                    "telegram_id": "22222222",
+                    "channels": [
+                        {"channel_id": "789"}
+                    ]
+                }
+            ]
+        )
+    ]
+)
+class UserTelegramChannelsView(APIView):
+    """
+    Login bo'lgan foydalanuvchining telegram accountlariga
+    tegishli bo'lgan barcha channel_id'larni qaytaradi.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # Query optimallashtirish:
+        # 1) Faqat login userning telegram accountlarini olamiz
+        # 2) OrderMember -> Order va TelegramAccount bilan bog'laymiz
+        qs = (
+            OrderMember.objects
+            .filter(telegram__user=user)
+            .select_related('order', 'telegram')
+            .values('telegram__telegram_id', 'order__channel_id')
+            .distinct()
+        )
+
+        # Natijani defaultdict yordamida yig'amiz
+        grouped_data = defaultdict(list)
+        for row in qs:
+            grouped_data[row['telegram__telegram_id']].append({
+                "channel_id": row['order__channel_id']
+            })
+
+        # Oxirgi javob formatlash
+        response_data = [
+            {
+                "telegram_id": telegram_id,
+                "channels": channels
+            }
+            for telegram_id, channels in grouped_data.items()
+        ]
+
+        return Response(response_data)
 
 # class SOrderWithLinksChildCreateAPIView(APIView):
 #     permission_classes = [permissions.IsAuthenticated]
