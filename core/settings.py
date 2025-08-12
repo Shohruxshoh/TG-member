@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
     'channels',
-    # 'silk',
+    'silk',
 
     'users',
     'service',
@@ -68,7 +68,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'silk.middleware.SilkyMiddleware',
+    'silk.middleware.SilkyMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls.urls'
@@ -105,10 +105,19 @@ DATABASES = {
 #         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': 'tg_member',
 #         'USER': 'postgres',
-#         'PASSWORD': 'admin',
-#         'HOST': 'db_master',
+#         'PASSWORD': 'admin',  # Productionda environment variablesdan foydalaning!
+#         'HOST': 'db',  # Docker-compose yoki service nomi
 #         'PORT': '5432',
-#         'CONN_MAX_AGE': 0
+#         'CONN_MAX_AGE': 0,  # 5 minut (60 dan ko'proq)
+#         'OPTIONS': {
+#             'connect_timeout': 5,  # Ulanish timeouti (sekund)
+#             'keepalives': 1,  # TCP keepalive yoqish
+#             'keepalives_idle': 30,  # 30 sekund inaktivlikdan keyin tekshirish
+#             'keepalives_interval': 10,  # 10 sekundda bir tekshirish
+#             'keepalives_count': 5,  # 5 marta urinishdan keyin ulanishni uzish
+#             'application_name': 'tg_member_app'  # Monitoring uchun
+#         },
+#         'DISABLE_SERVER_SIDE_CURSORS': True  # Ko'p ma'lumotli queriyalar uchun
 #     }
 # }
 # Password validation
@@ -229,11 +238,11 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-# SILKY_PYTHON_PROFILER = True
-# SILKY_AUTHENTICATION = True
-# SILKY_AUTHORISATION = True
-# SILKY_MAX_RESPONSE_BODY_SIZE = 1024
-# SILKY_INTERCEPT_PERCENT = 100  # Devda hammasi
+SILKY_PYTHON_PROFILER = True
+SILKY_AUTHENTICATION = True
+SILKY_AUTHORISATION = True
+SILKY_MAX_RESPONSE_BODY_SIZE = 1024
+SILKY_INTERCEPT_PERCENT = 100  # Devda hammasi
 
 TELEGRAM_API_ID = 26047327
 TELEGRAM_API_HASH = '4b3a297daf243228aa9ae085d775f411'

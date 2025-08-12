@@ -1,5 +1,6 @@
 import re
 from django.db.models import F
+from django.utils.timezone import now
 from rest_framework import serializers
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
@@ -291,6 +292,7 @@ class SAddVipSerializer(serializers.Serializer):
             # Agar to‘ldi, statusni yangilash
             if order.member == order.self_members:
                 order.status = 'COMPLETED'
+                order.number_added = order.self_members
                 order.save(update_fields=['status'])
 
         return created_members
@@ -324,3 +326,82 @@ class SCheckAddedChannelSerializer(serializers.Serializer):
         # Save the result in serializer for later use
         attrs['is_recent_member'] = recent_member_exists
         return attrs
+
+
+class ChannelSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField(min_value=1)
+    channel_id = serializers.CharField(max_length=255)
+
+
+class TelegramDataSerializer(serializers.Serializer):
+    telegram_id = serializers.CharField(max_length=50)
+    channels = serializers.ListField(
+        child=ChannelSerializer(),
+        allow_empty=False
+    )
+
+
+class TelegramListSerializer(serializers.ListSerializer):
+    child = TelegramDataSerializer()
+
+    def validate(self, data):
+        user = self.context['request'].user
+        cutoff_time = now() - timedelta(days=2, hours=12)
+
+        # 1️⃣ Telegram va order ID larni yig‘ish
+        telegram_orders_map = {}
+        all_telegram_ids = set()
+        all_order_ids = set()
+
+        for item in data:
+            tid = item["telegram_id"]
+            orders = [ch["order_id"] for ch in item["channels"]]
+            telegram_orders_map[tid] = orders
+            all_telegram_ids.add(tid)
+            all_order_ids.update(orders)
+
+        # 2️⃣ Faqat keraklilarni DB dan olish (is_active va cutoff_time bo‘yicha filter)
+        members = list(
+            OrderMember.objects.filter(
+                telegram__telegram_id__in=all_telegram_ids,
+                order_id__in=all_order_ids,
+                is_active=True,
+                joined_at__lt=cutoff_time
+            ).select_related('telegram')
+        )
+
+        # 3️⃣ Mapping yaratish
+        members_map = {(m.telegram.telegram_id, m.order_id): m for m in members}
+
+        # 4️⃣ Tekshirish va yangilanishga tayyorlash
+        to_update = []
+        missing = []
+        user_vip = 0
+
+        for tid, order_ids in telegram_orders_map.items():
+            for oid in order_ids:
+                key = (tid, oid)
+                if key in members_map:
+                    member = members_map[key]
+                    member.is_active = False
+                    user_vip += member.vip
+                    to_update.append(member)
+                # else:
+                #     member = members_map[key]
+                #     member.is_active = False
+                #     user_vip += member.vip
+                #     to_update.append(member)
+
+        # if missing:
+        #     raise serializers.ValidationError({
+        #         "missing": f"Quyidagilar topilmadi: {', '.join(missing)}"
+        #     })
+
+        # 5️⃣ bulk_update va balansni yangilash
+        if to_update:
+            OrderMember.objects.bulk_update(to_update, ["is_active"])
+            if hasattr(user, 'user_balance'):
+                user.user_balance.balance += user_vip
+                user.user_balance.save()
+
+        return data

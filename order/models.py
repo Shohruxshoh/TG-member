@@ -58,6 +58,7 @@ class Order(models.Model):
     service_category = models.CharField(max_length=200, null=True, blank=True, db_index=True)
     country_code = models.CharField(max_length=200, null=True, blank=True, db_index=True)
     day = models.PositiveIntegerField(default=0)
+    number_added =models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)

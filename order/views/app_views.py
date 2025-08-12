@@ -3,11 +3,14 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from rest_framework import permissions, generics, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
+from silk.profiling.profiler import silk_profile
+
 from order.models import Order, OrderMember
 from users.models import TelegramAccount
 from order.permissions import IsOwnerOrReadOnly
 from order.serializers.app_serializers import SOrderSerializer, SOrderDetailSerializer, SOrderLinkCreateSerializer, \
-    STelegramBackfillSerializer, SAddVipSerializer, SOrderLinkListSerializer, SCheckAddedChannelSerializer
+    STelegramBackfillSerializer, SAddVipSerializer, SOrderLinkListSerializer, SCheckAddedChannelSerializer, \
+    TelegramListSerializer
 from order.filters import OrderFilter, OrderLinkFilter
 from order.services import save_links_for_order
 from order.telegram_fetch import fetch_prior_message_urls
@@ -83,10 +86,12 @@ class SOrderDetailAPIView(generics.RetrieveAPIView):
 class SOrderLinkListAPIView(generics.ListAPIView):
     serializer_class = SOrderLinkListSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filter_backends = [DjangoFilterBackend]  # , SearchFilter
     filterset_class = OrderLinkFilter
-    search_fields = ['link', 'channel_name']
 
+    # search_fields = ['link', 'channel_name']
+
+    @silk_profile()
     def get_queryset(self):
         user = self.request.user
         telegram_ids = self.request.query_params.getlist('telegram_id')
@@ -94,46 +99,49 @@ class SOrderLinkListAPIView(generics.ListAPIView):
         if not telegram_ids:
             return Order.objects.none()
 
-        # Faqat kerakli TelegramAccount larni olib kelamiz (id + country_code)
-        telegram_accounts = TelegramAccount.objects.filter(
+        telegram_accounts_qs = TelegramAccount.objects.filter(
             telegram_id__in=telegram_ids,
             is_active=True
-        ).values('id', 'country_code')
+        )
 
-        telegram_account_ids = [item['id'] for item in telegram_accounts]
-        country_codes = list({item['country_code'] for item in telegram_accounts})
+        telegram_account_ids = list(telegram_accounts_qs.values_list('id', flat=True))
+        country_codes = list(telegram_accounts_qs.values_list('country_code', flat=True))
 
         if not telegram_account_ids:
             return Order.objects.none()
 
         three_days_ago = now() - timedelta(days=3)
 
-        # OrderMember subquery: foydalanuvchi bu orderga bog‘langanmi
-        any_member_qs = OrderMember.objects.filter(
-            order=OuterRef('pk'),
-            user=user,
-            telegram_id__in=telegram_account_ids
-        )
-
-        # Subquery: 3 kun ichida a’zo bo‘lganmi
-        recent_member_qs = any_member_qs.filter(
-            joined_at__gt=three_days_ago
-        )
-
-        # Yakuniy order queryset
-        return (
+        # 1. Barcha shartlarga mos keladigan buyurtmalarni filtrlash
+        base_orders_qs = (
             Order.objects
-            .select_related('service', 'user', 'parent')  # optimize joinlar
-            .annotate(
-                has_any_member=Exists(any_member_qs),
-                has_recent_member=Exists(recent_member_qs),
-            )
+            .select_related('service', 'user', 'parent')
             .filter(
                 is_active=True,
                 status='PROCESSING',
-                has_recent_member=False,
                 country_code__in=country_codes
             )
+        )
+
+        # 2. Keyin, foydalanuvchi yaqin vaqtda a'zo bo'lgan Telegram ID'lar sonini hisoblash
+        # Bu hisoblash har bir order uchun alohida amalga oshiriladi.
+        orders_with_recent_member_count = base_orders_qs.annotate(
+            recent_member_count=Count(
+                'members',
+                filter=(
+                        Q(members__user=user) &
+                        Q(members__telegram_id__in=telegram_account_ids) &
+                        Q(members__joined_at__gt=three_days_ago)
+                )
+            )
+        )
+
+        # 3. Nihoyat, hisoblagan 'recent_member_count' soni berilgan telegram_ids soniga teng bo'lmagan
+        # buyurtmalarni qaytarish.
+        return (
+            orders_with_recent_member_count
+            .filter(recent_member_count__lt=len(telegram_ids))
+            .distinct()
             .values('id', 'link', 'channel_name', 'country_code')
         )
 
@@ -270,10 +278,10 @@ class SCheckAddedChannelAPIView(APIView):
 
 
 @extend_schema(
-    summary="Foydalanuvchi Telegram accountlariga tegishli channel_id'lar ro'yxati",
+    summary="Foydalanuvchi Telegram accountlariga tegishli channel_id va order_id ro'yxati",
     description=(
             "Login qilgan foydalanuvchining barcha Telegram accountlarini tekshiradi "
-            "va ularga ulangan Orderlardan channel_id'larni qaytaradi."
+            "va ularga ulangan Orderlardan channel_id va order_id'larni qaytaradi."
     ),
     responses={
         200: {
@@ -287,6 +295,7 @@ class SCheckAddedChannelAPIView(APIView):
                         "items": {
                             "type": "object",
                             "properties": {
+                                "order_id": {"type": "integer", "example": 1},
                                 "channel_id": {"type": "string", "example": "123"}
                             }
                         }
@@ -302,14 +311,14 @@ class SCheckAddedChannelAPIView(APIView):
                 {
                     "telegram_id": "11111111",
                     "channels": [
-                        {"channel_id": "123"},
-                        {"channel_id": "456"}
+                        {"order_id": 1, "channel_id": "123"},
+                        {"order_id": 2, "channel_id": "456"}
                     ]
                 },
                 {
                     "telegram_id": "22222222",
                     "channels": [
-                        {"channel_id": "789"}
+                        {"order_id": 3, "channel_id": "789"}
                     ]
                 }
             ]
@@ -319,32 +328,28 @@ class SCheckAddedChannelAPIView(APIView):
 class UserTelegramChannelsView(APIView):
     """
     Login bo'lgan foydalanuvchining telegram accountlariga
-    tegishli bo'lgan barcha channel_id'larni qaytaradi.
+    tegishli bo'lgan barcha order_id va channel_id'larni qaytaradi.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         user = request.user
 
-        # Query optimallashtirish:
-        # 1) Faqat login userning telegram accountlarini olamiz
-        # 2) OrderMember -> Order va TelegramAccount bilan bog'laymiz
         qs = (
             OrderMember.objects
-            .filter(telegram__user=user)
-            .select_related('order', 'telegram')
-            .values('telegram__telegram_id', 'order__channel_id')
+            .filter(telegram__user=user, user=user, is_active=True)
+            .select_related('order', 'telegram', 'user')
+            .values('telegram__telegram_id', 'order__id', 'order__channel_id')
             .distinct()
         )
 
-        # Natijani defaultdict yordamida yig'amiz
         grouped_data = defaultdict(list)
         for row in qs:
             grouped_data[row['telegram__telegram_id']].append({
+                "order_id": row['order__id'],
                 "channel_id": row['order__channel_id']
             })
 
-        # Oxirgi javob formatlash
         response_data = [
             {
                 "telegram_id": telegram_id,
@@ -354,6 +359,55 @@ class UserTelegramChannelsView(APIView):
         ]
 
         return Response(response_data)
+
+
+class TelegramCheckListAPIView(APIView):
+    """
+    Frontenddan kelgan telegram_id + order_id larni tekshiradi va
+    muddati o'tganlarni is_active=False qiladi.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        request=TelegramListSerializer,
+        responses={
+            200: OpenApiExample(
+                "Muvaffaqiyatli javob",
+                value={"message": "Tekshiruv yakunlandi, kerakli o'zgarishlar kiritildi."}
+            ),
+            **COMMON_RESPONSES
+        },
+        examples=[
+            OpenApiExample(
+                "So‘rov namunasi",
+                value=[
+                    {
+                        "telegram_id": "12345",
+                        "channels": [
+                            {"order_id": 1, "channel_id": "1"},
+                            {"order_id": 34, "channel_id": "string"},
+                            {"order_id": 37, "channel_id": "777777"}
+                        ]
+                    },
+                    {
+                        "telegram_id": "123456",
+                        "channels": [
+                            {"order_id": 1, "channel_id": "1"},
+                            {"order_id": 37, "channel_id": "777777"}
+                        ]
+                    }
+                ],
+                request_only=True
+            )
+        ]
+    )
+    def post(self, request):
+        serializer = TelegramListSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            {"message": "Tekshiruv yakunlandi, kerakli o'zgarishlar kiritildi."},
+            status=status.HTTP_200_OK
+        )
 
 # class SOrderWithLinksChildCreateAPIView(APIView):
 #     permission_classes = [permissions.IsAuthenticated]
