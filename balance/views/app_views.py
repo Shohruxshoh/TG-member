@@ -1,3 +1,4 @@
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, ListAPIView
@@ -6,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from balance.models import Balance, Transfer, Buy, OrderBuy, GiftUsage
 from balance.serializers.app_serializers import SBalanceUpdateSerializer, SBalanceSerializer, STransferSerializer, \
-    SGiftActivateSerializer, SBuySerializers, SOrderBuySerializers, SGiftUsageSerializer
+    SGiftActivateSerializer, SBuySerializers, SOrderBuySerializers, SGiftUsageSerializer, STransferListSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 
 from service.schemas import COMMON_RESPONSES
@@ -123,10 +124,23 @@ class STransferListCreateAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Transfer.objects.select_related('sender').filter(sender=self.request.user).order_by('-created_at')
+        user = self.request.user
+        return (
+            Transfer.objects
+            .select_related("sender")
+            .filter(
+                Q(sender=user) | Q(receiver_email=user.email)
+            )
+            .order_by("-created_at")
+        )
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return STransferSerializer
+        return STransferListSerializer
 
     def perform_create(self, serializer):
-        serializer.save()
+        serializer.save(sender=self.request.user)
 
 
 @extend_schema(

@@ -69,6 +69,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'silk.middleware.SilkyMiddleware',
+    'core.middleware.JsonRequestLogMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls.urls'
@@ -253,25 +254,52 @@ import os
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'formatters': {
         'verbose': {
-            'format': '[{asctime}] {levelname} [{name}] {message}',
+            'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
-    },
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'orders.log'),
-            'formatter': 'verbose',
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '''
+                %(asctime)s %(levelname)s %(name)s
+                %(pathname)s %(lineno)d %(message)s
+                %(funcName)s %(process)d %(thread)d
+            ''',
         },
     },
-    'loggers': {
-        'order': {
-            'handlers': ['file'],
+
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'api_file': {
             'level': 'INFO',
-            'propagate': True,
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'api.log'),
+            'formatter': 'json',
+        },
+        'api_errors': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'api_error.log'),
+            'formatter': 'json',
+        },
+    },
+
+    'loggers': {
+        'json_logger': {
+            'handlers': ['console', 'api_file', 'api_errors'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }

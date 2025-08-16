@@ -27,6 +27,6 @@ else:
     print("ℹ️  Superuser allaqachon mavjud.")
 EOF
 
-echo "🚀 Gunicorn ishga tushmoqda..."
+
 
 exec "$@"

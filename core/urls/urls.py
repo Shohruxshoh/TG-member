@@ -48,6 +48,7 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="app-schema"),
         name="aoo-swagger",
     ),
+    path('schema/redoc/', SpectacularRedocView.as_view(url_name='app-schema'), name='redoc'),
 ]
 if settings.DEBUG:
     urlpatterns += (

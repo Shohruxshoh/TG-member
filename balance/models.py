@@ -60,6 +60,17 @@ class Transfer(models.Model):
     def __str__(self):
         return f"{self.sender.username} → {self.receiver_email}: {self.value}"
 
+    def display_for_user(self, user):
+        """
+        Berilgan user uchun transferni ko‘rsatadi.
+        Yuboruvchi uchun '-' belgisi, qabul qiluvchi uchun '+' belgisi qo‘yiladi.
+        """
+        if user == self.sender:
+            return f"-{self.value}"
+        elif user.email == self.receiver_email:
+            return f"+{self.value}"
+        return str(self.value)  # boshqa odam uchun oddiy ko‘rsatish
+
 
 class Gift(models.Model):
     gift = models.CharField(max_length=200, unique=True)

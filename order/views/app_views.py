@@ -91,7 +91,7 @@ class SOrderLinkListAPIView(generics.ListAPIView):
 
     # search_fields = ['link', 'channel_name']
 
-    @silk_profile()
+    # @silk_profile()
     def get_queryset(self):
         user = self.request.user
         telegram_ids = self.request.query_params.getlist('telegram_id')
@@ -142,7 +142,7 @@ class SOrderLinkListAPIView(generics.ListAPIView):
             orders_with_recent_member_count
             .filter(recent_member_count__lt=len(telegram_ids))
             .distinct()
-            .values('id', 'link', 'channel_name', 'country_code')
+            .values('id', 'link', 'channel_name', 'channel_id', 'country_code')
         )
 
 

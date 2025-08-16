@@ -48,7 +48,7 @@ class SOrderDetailSerializer(serializers.ModelSerializer):
 class SOrderLinkListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'link', 'channel_name', 'country_code']
+        fields = ['id', 'link', 'channel_name', 'channel_id', 'country_code']
 
 
 # class SOrderWithLinksChildCreateSerializer(serializers.Serializer):

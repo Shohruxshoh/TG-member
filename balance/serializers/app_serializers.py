@@ -67,6 +67,22 @@ class STransferSerializer(serializers.ModelSerializer):
         return transfer
 
 
+class STransferListSerializer(serializers.ModelSerializer):
+    sign_value = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Transfer
+        fields = ["id", "sender", "receiver_email", "sign_value", "created_at"]
+
+    def get_sign_value(self, obj):
+        user = self.context["request"].user
+        if user == obj.sender:
+            return f"-{obj.value}"
+        elif user.email == obj.receiver_email:
+            return f"+{obj.value}"
+        return str(obj.value)
+
+
 class SGiftActivateSerializer(serializers.Serializer):
     gift = serializers.CharField(max_length=200)
 
