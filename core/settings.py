@@ -95,32 +95,32 @@ ASGI_APPLICATION = 'core.asgi.application'  # loyihangiz nomi asosida
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'tg_member',
-        'USER': 'postgres',
-        'PASSWORD': 'admin',  # Productionda environment variablesdan foydalaning!
-        'HOST': 'localhost',  # Docker-compose yoki service nomi
-        'PORT': '5432',
-        'CONN_MAX_AGE': 0,  # 5 minut (60 dan ko'proq)
-        # 'OPTIONS': {
-        #     'connect_timeout': 5,  # Ulanish timeouti (sekund)
-        #     'keepalives': 1,  # TCP keepalive yoqish
-        #     'keepalives_idle': 30,  # 30 sekund inaktivlikdan keyin tekshirish
-        #     'keepalives_interval': 10,  # 10 sekundda bir tekshirish
-        #     'keepalives_count': 5,  # 5 marta urinishdan keyin ulanishni uzish
-        #     'application_name': 'tg_member_app'  # Monitoring uchun
-        # },
-        # 'DISABLE_SERVER_SIDE_CURSORS': True  # Ko'p ma'lumotli queriyalar uchun
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'tg_member',
+#         'USER': 'postgres',
+#         'PASSWORD': 'admin',  # Productionda environment variablesdan foydalaning!
+#         'HOST': 'localhost',  # Docker-compose yoki service nomi
+#         'PORT': '5432',
+#         'CONN_MAX_AGE': 0,  # 5 minut (60 dan ko'proq)
+#         # 'OPTIONS': {
+#         #     'connect_timeout': 5,  # Ulanish timeouti (sekund)
+#         #     'keepalives': 1,  # TCP keepalive yoqish
+#         #     'keepalives_idle': 30,  # 30 sekund inaktivlikdan keyin tekshirish
+#         #     'keepalives_interval': 10,  # 10 sekundda bir tekshirish
+#         #     'keepalives_count': 5,  # 5 marta urinishdan keyin ulanishni uzish
+#         #     'application_name': 'tg_member_app'  # Monitoring uchun
+#         # },
+#         # 'DISABLE_SERVER_SIDE_CURSORS': True  # Ko'p ma'lumotli queriyalar uchun
+#     }
+# }
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
