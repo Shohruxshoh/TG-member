@@ -1,6 +1,7 @@
 # services.py
 from django.db import transaction
 
+from order.enums import Status
 from service.models import Link, Service
 from order.models import Order
 from decimal import Decimal
@@ -30,7 +31,6 @@ def save_links_for_order(service: Service, user, urls: list[str], channel_name, 
                 seen.add(u)
                 cleaned.append(u)
 
-    print(33, cleaned)
 
     if not cleaned:
         return {"existing": len(urls), "created": 0}
@@ -48,7 +48,7 @@ def save_links_for_order(service: Service, user, urls: list[str], channel_name, 
             channel_name=channel_name,
             channel_id=channel_id,
             country_code=service.country.country_code,
-            status="PENDING",
+            status=Status.PENDING,
         )
 
         count = len(cleaned)
@@ -67,7 +67,7 @@ def save_links_for_order(service: Service, user, urls: list[str], channel_name, 
                 link=url,
                 channel_name=channel_name,
                 channel_id=channel_id,
-                status="PENDING",
+                status=Status.PENDING,
             )
             for url in cleaned
         ]

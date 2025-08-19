@@ -1,13 +1,15 @@
 from rest_framework import permissions, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiResponse
 from service.models import Country, Service
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from service.schemas import COMMON_RESPONSES
 from service.serializers.app_serializers import SCountrySerializer, SServiceSerializer, \
     SOrderWithLinksCreateSerializer
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 
 @extend_schema(
@@ -18,6 +20,7 @@ from service.serializers.app_serializers import SCountrySerializer, SServiceSeri
         **COMMON_RESPONSES
     }
 )
+@method_decorator(cache_page(60 * 5), name='dispatch')  # 5 daqiqaga cache
 class SCountryListAPIView(generics.ListAPIView):
     queryset = Country.objects.filter(is_active=True).order_by('name')
     serializer_class = SCountrySerializer
@@ -32,6 +35,7 @@ class SCountryListAPIView(generics.ListAPIView):
         **COMMON_RESPONSES
     }
 )
+@method_decorator(cache_page(60 * 5), name='dispatch')  # 5 daqiqaga cache
 class SServiceListAPIView(generics.ListAPIView):
     queryset = Service.objects.select_related('country').filter(is_active=True).order_by('-created_at')
     serializer_class = SServiceSerializer

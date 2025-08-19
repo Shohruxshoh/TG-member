@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
     'channels',
-    'silk',
+    # 'silk',
 
     'users',
     'service',
@@ -68,8 +68,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'silk.middleware.SilkyMiddleware',
-    'core.middleware.JsonRequestLogMiddleware',
+    # 'silk.middleware.SilkyMiddleware',
+    # 'core.middleware.JsonRequestLogMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls.urls'
@@ -95,32 +95,32 @@ ASGI_APPLICATION = 'core.asgi.application'  # loyihangiz nomi asosida
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'tg_member',
-#         'USER': 'postgres',
-#         'PASSWORD': 'admin',  # Productionda environment variablesdan foydalaning!
-#         'HOST': 'db',  # Docker-compose yoki service nomi
-#         'PORT': '5432',
-#         'CONN_MAX_AGE': 0,  # 5 minut (60 dan ko'proq)
-#         'OPTIONS': {
-#             'connect_timeout': 5,  # Ulanish timeouti (sekund)
-#             'keepalives': 1,  # TCP keepalive yoqish
-#             'keepalives_idle': 30,  # 30 sekund inaktivlikdan keyin tekshirish
-#             'keepalives_interval': 10,  # 10 sekundda bir tekshirish
-#             'keepalives_count': 5,  # 5 marta urinishdan keyin ulanishni uzish
-#             'application_name': 'tg_member_app'  # Monitoring uchun
-#         },
-#         'DISABLE_SERVER_SIDE_CURSORS': True  # Ko'p ma'lumotli queriyalar uchun
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'tg_member',
+        'USER': 'postgres',
+        'PASSWORD': 'admin',  # Productionda environment variablesdan foydalaning!
+        'HOST': 'localhost',  # Docker-compose yoki service nomi
+        'PORT': '5432',
+        'CONN_MAX_AGE': 0,  # 5 minut (60 dan ko'proq)
+        # 'OPTIONS': {
+        #     'connect_timeout': 5,  # Ulanish timeouti (sekund)
+        #     'keepalives': 1,  # TCP keepalive yoqish
+        #     'keepalives_idle': 30,  # 30 sekund inaktivlikdan keyin tekshirish
+        #     'keepalives_interval': 10,  # 10 sekundda bir tekshirish
+        #     'keepalives_count': 5,  # 5 marta urinishdan keyin ulanishni uzish
+        #     'application_name': 'tg_member_app'  # Monitoring uchun
+        # },
+        # 'DISABLE_SERVER_SIDE_CURSORS': True  # Ko'p ma'lumotli queriyalar uchun
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -256,54 +256,38 @@ LOGGING = {
     'disable_existing_loggers': False,
 
     'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-        'json': {
+        'secure_json': {
             '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
-            'format': '''
-                %(asctime)s %(levelname)s %(name)s
-                %(pathname)s %(lineno)d %(message)s
-                %(funcName)s %(process)d %(thread)d
-            ''',
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
         },
     },
 
     'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        },
-        'api_file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'api.log'),
-            'formatter': 'json',
-        },
         'api_errors': {
             'level': 'ERROR',
-            'class': 'logging.FileHandler',
+            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'api_error.log'),
-            'formatter': 'json',
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'encoding': 'utf-8',
+            'formatter': 'secure_json',
+        },
+        'console': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'formatter': 'secure_json',
         },
     },
 
     'loggers': {
-        'json_logger': {
-            'handlers': ['console', 'api_file', 'api_errors'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
+        'secure_api_logger': {
+            'handlers': ['api_errors', 'console'],
+            'level': 'ERROR',  # Faqat ERROR va undan yuqori levellar
             'propagate': False,
         },
     },
 }
-
+SENSITIVE_KEYS = ['token', 'password', 'secret', 'credit_card', 'authorization']
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -311,4 +295,14 @@ CHANNEL_LAYERS = {
             "hosts": [("redis", 6379)],  # local Redis server
         },
     },
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
 }

@@ -5,6 +5,7 @@ from rest_framework import serializers
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 from balance.models import Balance, Vip
+from order.enums import Status
 from service.models import Service
 from order.models import Order, OrderMember
 from users.models import TelegramAccount
@@ -48,7 +49,7 @@ class SOrderDetailSerializer(serializers.ModelSerializer):
 class SOrderLinkListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'link', 'channel_name', 'channel_id', 'country_code']
+        fields = ['id', 'link', 'channel_name', 'channel_id']  # , 'country_code'
 
 
 # class SOrderWithLinksChildCreateSerializer(serializers.Serializer):
@@ -99,7 +100,7 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
     service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
     link = serializers.CharField(max_length=250, required=True)
     channel_name = serializers.CharField(max_length=200)
-    channel_id = serializers.CharField(max_length=200)
+    channel_id = serializers.IntegerField()
 
     def create(self, validated_data):
         with transaction.atomic():
@@ -135,7 +136,7 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
                 channel_id=channel_id,
                 country_code=service.country.country_code,
                 day=service.day.day,
-                status='PENDING',
+                status=Status.PENDING,
             )
 
             logger.info(f"Order {order.id} created by user {user.id}")
@@ -291,7 +292,7 @@ class SAddVipSerializer(serializers.Serializer):
 
             # Agar to‘ldi, statusni yangilash
             if order.member == order.self_members:
-                order.status = 'COMPLETED'
+                order.status = Status.COMPLETED
                 order.number_added = order.self_members
                 order.save(update_fields=['status'])
 

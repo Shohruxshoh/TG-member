@@ -1,5 +1,5 @@
 from django.db.models.enums import StrEnum
-
+from django.db import models
 
 class ErrorCodeEnum(StrEnum):
     """
@@ -22,3 +22,10 @@ class ErrorCodeEnum(StrEnum):
     ALREADY_EXISTS = "already_exists"
     ALREADY_PAID = "already_paid"
     INVALID_ORIGIN = "invalid_origin"
+
+class Category(models.TextChoices):
+    PREMIUM = "PREMIUM", "Premium"
+    VIEW = "VIEW", "View"
+    REACTION = "REACTION", "Reaction"
+    MEMBER = "MEMBER", "Member"
+

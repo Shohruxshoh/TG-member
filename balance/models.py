@@ -2,6 +2,9 @@ from django.db import models
 from django.db import transaction
 import string
 import random
+
+from balance.enums import Currency
+from service.enums import Category
 from users.models import User
 from django.db.models import F
 
@@ -128,17 +131,12 @@ class Buy(models.Model):
 
 
 class OrderBuy(models.Model):
-    CURRENCY = (
-        ("SO'M", "so'm"),
-        ("DOLLAR", "dollar"),
-        ("RUBLI", "rubli"),
-    )
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     buy = models.ForeignKey(Buy, on_delete=models.PROTECT)
     coin = models.PositiveIntegerField(default=0)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_paid = models.BooleanField(default=False)
-    currency = models.CharField(max_length=10, choices=CURRENCY, default="so'm")
+    currency = models.CharField(max_length=10, choices=Currency.choices, default=Currency.DOLLAR)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -147,14 +145,8 @@ class OrderBuy(models.Model):
 
 
 class Vip(models.Model):
-    CHOOSE_CATEGORY = (
-        ("PREMIUM", 'Premium'),
-        ("VIEW", 'View'),
-        ("REACTION", 'Reaction'),
-        ("MEMBER", 'Member'),
-    )
     vip = models.PositiveIntegerField(default=0)
-    category = models.CharField(max_length=20, choices=CHOOSE_CATEGORY, default="MEMBER", db_index=True)
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.MEMBER, db_index=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

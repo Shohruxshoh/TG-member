@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.db import models
 from django.db.models import Count, F, Value, Case, When, ExpressionWrapper
 from django.db.models import DecimalField
+from order.enums import Status
 from service.models import Service
 from users.models import User, TelegramAccount
 
@@ -39,16 +40,9 @@ class OrderManager(models.Manager.from_queryset(OrderQuerySet)):
 
 
 class Order(models.Model):
-    CHOOSE_STATUS = (
-        ("PENDING", 'Pending'),
-        ("PARTIAL", 'Partial'),
-        ("PROCESSING", 'Processing'),
-        ("COMPLETED", 'Completed'),
-        ("FAILED", 'Failed'),
-    )
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True)
-    status = models.CharField(max_length=20, choices=CHOOSE_STATUS, default="PENDING", db_index=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     link = models.CharField(max_length=200)
     channel_name = models.CharField(max_length=200)
@@ -67,7 +61,7 @@ class Order(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['status', 'is_active']),
             models.Index(fields=['is_active', 'created_at']),
         ]
 
@@ -103,6 +97,7 @@ class OrderMember(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['order', 'user', 'telegram']),
+            models.Index(fields=['user', 'telegram', 'joined_at']),
         ]
 
     def __str__(self):

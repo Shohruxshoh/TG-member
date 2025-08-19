@@ -33,5 +33,11 @@ class TelegramAccount(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["telegram_id", "is_active"]),  # tezkor qidiruv uchun composite index
+        ]
+
     def __str__(self):
         return str(self.telegram_id)

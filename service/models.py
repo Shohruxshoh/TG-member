@@ -1,5 +1,7 @@
 from django.db import models
 
+from service.enums import Category
+
 
 # Create your models here.
 
@@ -24,14 +26,8 @@ class Country(models.Model):
 
 
 class Service(models.Model):
-    CHOOSE_CATEGORY = (
-        ("PREMIUM", 'Premium'),
-        ("VIEW", 'View'),
-        ("REACTION", 'Reaction'),
-        ("MEMBER", 'Member'),
-    )
     country = models.ForeignKey(Country, on_delete=models.PROTECT)
-    category = models.CharField(max_length=20, choices=CHOOSE_CATEGORY, default="MEMBER", db_index=True)
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.MEMBER, db_index=True)
     day = models.ForeignKey(DayOption, on_delete=models.SET_NULL, null=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     member = models.PositiveIntegerField(default=0)

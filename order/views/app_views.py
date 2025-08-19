@@ -1,11 +1,13 @@
+from django.db.models.functions import Coalesce
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter, OpenApiExample
 from rest_framework import permissions, generics, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
-from silk.profiling.profiler import silk_profile
-
+# from silk.profiling.profiler import silk_profile
+from order.enums import Status
 from order.models import Order, OrderMember
+# from order.utils import explain_analyze
 from users.models import TelegramAccount
 from order.permissions import IsOwnerOrReadOnly
 from order.serializers.app_serializers import SOrderSerializer, SOrderDetailSerializer, SOrderLinkCreateSerializer, \
@@ -22,7 +24,7 @@ from asgiref.sync import async_to_sync
 from service.schemas import COMMON_RESPONSES
 from django.utils.timezone import now
 from datetime import timedelta
-from django.db.models import F, OuterRef, Subquery, Exists, Count, Q
+from django.db.models import F, OuterRef, Subquery, Exists, Count, Q, IntegerField
 
 
 @extend_schema(
@@ -95,55 +97,107 @@ class SOrderLinkListAPIView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         telegram_ids = self.request.query_params.getlist('telegram_id')
+        # telegram_ids = [int(tid) for tid in telegram_ids if tid.isdigit()]
 
         if not telegram_ids:
             return Order.objects.none()
 
-        telegram_accounts_qs = TelegramAccount.objects.filter(
+        telegram_accounts_qs = TelegramAccount.objects.select_related('user').filter(
             telegram_id__in=telegram_ids,
             is_active=True
-        )
+        ).values_list("id", flat=True)
+        # telegram_account_ids = list(telegram_accounts_qs.values_list('id', flat=True))
 
-        telegram_account_ids = list(telegram_accounts_qs.values_list('id', flat=True))
-        country_codes = list(telegram_accounts_qs.values_list('country_code', flat=True))
+        # country_codes = list(telegram_accounts_qs.values_list('country_code', flat=True))
 
-        if not telegram_account_ids:
+        if not telegram_accounts_qs:
             return Order.objects.none()
 
         three_days_ago = now() - timedelta(days=3)
 
-        # 1. Barcha shartlarga mos keladigan buyurtmalarni filtrlash
         base_orders_qs = (
             Order.objects
-            .select_related('service', 'user', 'parent')
+            .select_related('parent')  # Only select parent relation as we need minimal fields
             .filter(
                 is_active=True,
-                status='PROCESSING',
-                country_code__in=country_codes
+                status=Status.PROCESSING,
+                # country_code__in=country_codes
             )
+            .only('id', 'link', 'channel_name', 'channel_id', 'parent_id')  # Only fields we actually need
         )
 
-        # 2. Keyin, foydalanuvchi yaqin vaqtda a'zo bo'lgan Telegram ID'lar sonini hisoblash
-        # Bu hisoblash har bir order uchun alohida amalga oshiriladi.
-        orders_with_recent_member_count = base_orders_qs.annotate(
+        orders_with_recent_member_count = base_orders_qs.prefetch_related('members').annotate(
             recent_member_count=Count(
                 'members',
                 filter=(
                         Q(members__user=user) &
-                        Q(members__telegram_id__in=telegram_account_ids) &
+                        Q(members__telegram_id__in=telegram_accounts_qs) &
                         Q(members__joined_at__gt=three_days_ago)
                 )
             )
         )
 
-        # 3. Nihoyat, hisoblagan 'recent_member_count' soni berilgan telegram_ids soniga teng bo'lmagan
-        # buyurtmalarni qaytarish.
         return (
             orders_with_recent_member_count
             .filter(recent_member_count__lt=len(telegram_ids))
             .distinct()
-            .values('id', 'link', 'channel_name', 'channel_id', 'country_code')
+            .values('id', 'link', 'channel_name', 'channel_id')  # country_code
         )
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     telegram_ids = self.request.query_params.getlist('telegram_id', [])
+    #
+    #     # 1. Boshlang'ich tekshiruvlar
+    #     if not telegram_ids:
+    #         return Order.objects.none()
+    #
+    #     # 2. Telegram akkauntlarini oldindan yuklash
+    #     telegram_account_ids = list(
+    #         TelegramAccount.objects.filter(
+    #             telegram_id__in=telegram_ids,
+    #             is_active=True
+    #         ).values_list('id', flat=True)
+    #     )
+    #
+    #     if not telegram_account_ids:
+    #         return Order.objects.none()
+    #
+    #     three_days_ago = now() - timedelta(days=3)
+    #
+    #     # 3. Optimallashtirilgan subquery yaratish
+    #     recent_members_subquery = (
+    #         OrderMember.objects.filter(
+    #             order_id=OuterRef('pk'),
+    #             user=user,
+    #             telegram_id__in=telegram_account_ids,
+    #             joined_at__gt=three_days_ago
+    #         )
+    #         .values('order_id')
+    #         .annotate(count=Count('id'))
+    #         .values('count')
+    #     )
+    #
+    #     # 4. Asosiy optimallashtirilgan so'rov
+    #     optimized_qs = (
+    #         Order.objects
+    #         .filter(
+    #             is_active=True,
+    #             status=Status.PROCESSING
+    #         )
+    #         .annotate(
+    #             recent_member_count=Coalesce(
+    #                 Subquery(recent_members_subquery),
+    #                 0,
+    #                 output_field=IntegerField()
+    #             )
+    #         )
+    #         .filter(recent_member_count__lt=len(telegram_ids))
+    #         .select_related('parent')
+    #         .only('id', 'link', 'channel_name', 'channel_id', 'parent_id')
+    #         .distinct()
+    #     )
+    #
+    #     return optimized_qs.values('id', 'link', 'channel_name', 'channel_id')
 
 
 @extend_schema(
