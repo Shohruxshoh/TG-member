@@ -20,7 +20,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
         **COMMON_RESPONSES
     }
 )
-@method_decorator(cache_page(60 * 5, key_prefix="cache_country"), name='dispatch')  # 5 daqiqaga cache
+# @method_decorator(cache_page(60 * 5, key_prefix="cache_country"), name='dispatch')  # 5 daqiqaga cache
 class SCountryListAPIView(generics.ListAPIView):
     queryset = Country.objects.filter(is_active=True).order_by('name')
     serializer_class = SCountrySerializer
@@ -35,7 +35,7 @@ class SCountryListAPIView(generics.ListAPIView):
         **COMMON_RESPONSES
     }
 )
-@method_decorator(cache_page(60 * 5, key_prefix="cache_service"), name='dispatch')  # 5 daqiqaga cache
+# @method_decorator(cache_page(60 * 5, key_prefix="cache_service"), name='dispatch')  # 5 daqiqaga cache
 class SServiceListAPIView(generics.ListAPIView):
     queryset = Service.objects.select_related('country').filter(is_active=True).order_by('-created_at')
     serializer_class = SServiceSerializer
