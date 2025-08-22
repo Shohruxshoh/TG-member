@@ -103,27 +103,26 @@ class SOrderLinkCreateSerializer(serializers.Serializer):
     channel_id = serializers.IntegerField()
 
     def create(self, validated_data):
+        user = self.context['request'].user
+        service = validated_data['service']
+        link = validated_data['link']
+        channel_name = validated_data['channel_name']
+        channel_id = validated_data['channel_id']
+
+        logger.info(f"User {user.id} is creating an order for service {service.id}")
+
+        # Foydalanuvchi balansi
+        try:
+            balance = user.user_balance
+        except Balance.DoesNotExist:
+            logger.error(f"Balance not found for user {user.id}")
+            raise ValidationError("User balance not found.")
+
+        # Balans yetarli ekanligini tekshirish
+        if balance.balance < service.price:
+            logger.warning(f"User {user.id} has insufficient balance: {balance.balance}, required: {service.price}")
+            raise ValidationError("Your balance is insufficient.")
         with transaction.atomic():
-            user = self.context['request'].user
-            service = validated_data['service']
-            link = validated_data['link']
-            channel_name = validated_data['channel_name']
-            channel_id = validated_data['channel_id']
-
-            logger.info(f"User {user.id} is creating an order for service {service.id}")
-
-            # Foydalanuvchi balansi
-            try:
-                balance = user.user_balance
-            except Balance.DoesNotExist:
-                logger.error(f"Balance not found for user {user.id}")
-                raise ValidationError("User balance not found.")
-
-            # Balans yetarli ekanligini tekshirish
-            if balance.balance < service.price:
-                logger.warning(f"User {user.id} has insufficient balance: {balance.balance}, required: {service.price}")
-                raise ValidationError("Your balance is insufficient.")
-
             # Order yaratish
             order = Order.objects.create(
                 user=user,

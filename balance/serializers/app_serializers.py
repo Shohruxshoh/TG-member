@@ -138,7 +138,7 @@ class SGiftUsageSerializer(serializers.ModelSerializer):
 class SBuySerializers(serializers.ModelSerializer):
     class Meta:
         model = Buy
-        fields = ['id', 'coin', 'price', 'percent']
+        fields = ['id', 'coin', 'price', 'self_uzs', 'self_rub', 'percent']
 
 
 class SOrderBuySerializers(serializers.ModelSerializer):

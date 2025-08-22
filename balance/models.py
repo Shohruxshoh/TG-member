@@ -3,7 +3,7 @@ from django.db import transaction
 import string
 import random
 
-from balance.enums import Currency
+from balance.enums import CurrencyEnum
 from service.enums import Category
 from users.models import User
 from django.db.models import F
@@ -126,6 +126,22 @@ class Buy(models.Model):
             self.price = discounted_price
         super().save(*args, **kwargs)
 
+    @property
+    def self_uzs(self):
+        som = Currency.objects.filter(is_active=True).last()
+        if som:
+            uzs = self.price * som.som
+            return uzs
+        raise ValueError("So'm is not a currency.")
+
+    @property
+    def self_rub(self):
+        rubli = Currency.objects.filter(is_active=True).last()
+        if rubli:
+            rub = self.price * rubli.rubli
+            return rub
+        raise ValueError("Ruble is not active.")
+
     def __str__(self):
         return f"Coin: {self.coin}- Price: {self.price}"
 
@@ -136,7 +152,7 @@ class OrderBuy(models.Model):
     coin = models.PositiveIntegerField(default=0)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_paid = models.BooleanField(default=False)
-    currency = models.CharField(max_length=10, choices=Currency.choices, default=Currency.DOLLAR)
+    currency = models.CharField(max_length=10, choices=CurrencyEnum.choices, default=CurrencyEnum.DOLLAR)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

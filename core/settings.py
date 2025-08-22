@@ -69,7 +69,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # 'silk.middleware.SilkyMiddleware',
-    # 'core.middleware.JsonRequestLogMiddleware',
+    'core.middleware.JsonRequestLogMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls.urls'
@@ -109,7 +109,7 @@ DATABASES = {
 #         'PASSWORD': 'admin',  # Productionda environment variablesdan foydalaning!
 #         'HOST': 'localhost',  # Docker-compose yoki service nomi
 #         'PORT': '5432',
-#         'CONN_MAX_AGE': 0,  # 5 minut (60 dan ko'proq)
+#         'CONN_MAX_AGE': 60,  # 5 minut (60 dan ko'proq)
 #         # 'OPTIONS': {
 #         #     'connect_timeout': 5,  # Ulanish timeouti (sekund)
 #         #     'keepalives': 1,  # TCP keepalive yoqish
@@ -245,9 +245,9 @@ SILKY_AUTHORISATION = True
 SILKY_MAX_RESPONSE_BODY_SIZE = 1024
 SILKY_INTERCEPT_PERCENT = 100  # Devda hammasi
 
-TELEGRAM_API_ID = 26047327
-TELEGRAM_API_HASH = '4b3a297daf243228aa9ae085d775f411'
-TELEGRAM_SESSION_NAME = 'tg_session'
+TELEGRAM_API_ID = os.getenv('TELEGRAM_API_ID')
+TELEGRAM_API_HASH = os.getenv('TELEGRAM_API_HASH')
+TELEGRAM_SESSION_NAME = os.getenv('TELEGRAM_SESSION_NAME')
 
 import os
 
@@ -300,9 +300,22 @@ CHANNEL_LAYERS = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/0",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://redis:6379/0"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+        },
+        "TIMEOUT": 60 * 60,  # 1 soat
     }
 }
+
+# Security
+# SECURE_BROWSER_XSS_FILTER = True
+# SECURE_CONTENT_TYPE_NOSNIFF = True
+# SESSION_COOKIE_SECURE = False
+# CSRF_COOKIE_SECURE = False
+# SECURE_SSL_REDIRECT = False
+# SECURE_HSTS_SECONDS = 31536000  # 1 yil HSTS
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
+# X_FRAME_OPTIONS = "DENY"  # clickjackingdan himoya
