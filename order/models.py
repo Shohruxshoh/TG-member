@@ -61,8 +61,7 @@ class Order(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['status', 'is_active']),
-            models.Index(fields=['is_active', 'created_at']),
+            models.Index(fields=["is_active", "status"]),
         ]
 
     def __str__(self):
@@ -96,8 +95,12 @@ class OrderMember(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['order', 'user', 'telegram']),
-            models.Index(fields=['user', 'telegram', 'joined_at']),
+            # tez-tez ishlatiladigan querylar uchun composite index
+            models.Index(fields=["order", "user", "telegram"]),
+            # joined_at bo‘yicha range filter uchun
+            models.Index(fields=["joined_at"]),
+            # faollik bo‘yicha filter uchun
+            models.Index(fields=["is_active"]),
         ]
 
     def __str__(self):

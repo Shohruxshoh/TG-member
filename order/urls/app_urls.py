@@ -1,7 +1,7 @@
 from django.urls import path, include
 from order.views.app_views import SOrderListAPIViews, SOrderDetailAPIView, \
     SOrderLinkCreateAPIView, STelegramBackfillAPIView, SAddVipAPIView, SOrderLinkListAPIView, SCheckAddedChannelAPIView, \
-    UserTelegramChannelsView, TelegramCheckListAPIView
+    UserTelegramChannelsView, TelegramCheckListAPIView, SOrderLinkListAPIView2
 
 urlpatterns = [
     path('orders/', SOrderListAPIViews.as_view()),
@@ -14,4 +14,5 @@ urlpatterns = [
     path('check-channel/', SCheckAddedChannelAPIView.as_view()),
     path('my-telegram-channels/', UserTelegramChannelsView.as_view(), name='my-telegram-channels'),
     path("check-telegram-members/", TelegramCheckListAPIView.as_view(), name="check-telegram-members"),
+
 ]

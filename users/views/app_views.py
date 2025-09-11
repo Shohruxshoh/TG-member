@@ -3,7 +3,6 @@ from rest_framework.generics import CreateAPIView, ListCreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
 from service.schemas import COMMON_RESPONSES
 from users.models import User, TelegramAccount
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,6 +12,7 @@ from django.http import JsonResponse
 from users.serializers.app_serializers import SRegisterSerializer, SRegisterGoogleSerializer, SLoginGoogleSerializer, \
     SPasswordChangeSerializer, SPasswordResetEmailRequestSerializer, SPasswordResetConfirmSerializer, SUserSerializer, \
     SUserChangeEmailSerializer, STelegramAccountSerializer
+from users.tasks import send_email
 
 
 # Create your views here.
@@ -98,7 +98,7 @@ class SPasswordResetEmailView(APIView):
     def post(self, request):
         serializer = SPasswordResetEmailRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(request)
+        send_email.delay(serializer.validated_data['email'])
         return Response({"message": "A password reset link has been sent to your email."}, status=status.HTTP_200_OK)
 
 

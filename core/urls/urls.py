@@ -24,7 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/admin/', include('core.urls.admin_urls')),
     path('api/app/', include('core.urls.app_urls')),
-    # path('silk/', include('silk.urls', namespace='silk')),
+    path('silk/', include('silk.urls', namespace='silk')),
 
     # Spectacular schema views
     path(

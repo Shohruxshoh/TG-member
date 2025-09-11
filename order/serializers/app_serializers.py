@@ -225,7 +225,7 @@ class SAddVipSerializer(serializers.Serializer):
         telegrams = TelegramAccount.objects.filter(
             telegram_id__in=telegram_ids,
             is_active=True,
-            country_code=order.country_code
+            # country_code=order.country_code
         )
 
         # Faqat orderga oxirgi 3 kunda qo‘shilmaganlar

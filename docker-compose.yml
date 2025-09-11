@@ -1,9 +1,18 @@
 services:
   web:
     build: .
-    command: gunicorn core.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8080 --workers 5 --threads 2 --timeout 120 --log-level info
+    working_dir: /app
+    command: >
+      gunicorn core.asgi:application
+      -k uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8080
+      --workers 5
+      --threads 2
+      --timeout 120
+      --log-level info
     volumes:
       - .:/app
+      - ./tg_session:/app/tg_session
     expose:
       - "8080"
     depends_on:
@@ -43,9 +52,47 @@ services:
     volumes:
       - redis_data:/data
 
+  celery:
+    build: .
+    working_dir: /app
+    command: celery -A core worker -l info
+    volumes:
+      - .:/app
+      - ./tg_session:/app/tg_session
+    depends_on:
+      - redis
+      - db
+      - web
+
+  celery-beat:
+    build: .
+    working_dir: /app
+    command: celery -A core beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+      - ./tg_session:/app/tg_session
+    depends_on:
+      - redis
+      - db
+      - web
+
+  flower:
+    build: .
+    working_dir: /app
+    command: celery -A core flower --port=5555 --broker=redis://redis:6379/0
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+      - web
+    ports:
+      - "5555:5555"
+
 volumes:
   postgres_data:
   redis_data:
+
 
 #services:
 #  web:

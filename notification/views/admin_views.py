@@ -25,7 +25,7 @@ from users.permissions import IsAdminStaff
     }
 )
 class ANotificationCreateAPIView(APIView):
-    permission_classes = [IsAdminStaff]
+    # permission_classes = [IsAdminStaff]
 
     def post(self, request, *args, **kwargs):
         serializer = ANotificationSerializer(data=request.data)

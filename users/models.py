@@ -26,7 +26,7 @@ class User(AbstractUser):
 
 class TelegramAccount(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='telegram_accounts')
-    telegram_id = models.CharField(max_length=200, unique=True, db_index=True)
+    telegram_id = models.CharField(max_length=200, unique=True)
     phone_number = models.CharField(max_length=200, unique=True)
     country_code = models.CharField(max_length=200)
     is_active = models.BooleanField(default=True, db_index=True)
@@ -36,7 +36,7 @@ class TelegramAccount(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["telegram_id", "is_active"]),  # tezkor qidiruv uchun composite index
+            models.Index(fields=["user", "is_active"]),  # tezkor qidiruv uchun composite index
         ]
 
     def __str__(self):

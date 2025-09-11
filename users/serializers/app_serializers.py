@@ -89,21 +89,21 @@ class SPasswordResetEmailRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError("This email address does not exist in the list.")
         return value
 
-    def save(self, request):
-        email = self.validated_data['email']
-        user = User.objects.get(email=email)
-
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
-
-        reset_url = f"https://tgmember.pythonanywhere.com/api/users/reset-password/{uid}/{token}/"
-
-        send_mail(
-            subject="Parolni tiklash",
-            message=f"Parolni tiklash uchun ushbu havolaga o‘ting: {reset_url}",
-            from_email=EMAIL_HOST_USER,
-            recipient_list=[email],
-        )
+    # def save(self, request):
+    #     email = self.validated_data['email']
+    #     user = User.objects.get(email=email)
+    #
+    #     uid = urlsafe_base64_encode(force_bytes(user.pk))
+    #     token = default_token_generator.make_token(user)
+    #
+    #     reset_url = f"https://tgmember.pythonanywhere.com/api/users/reset-password/{uid}/{token}/"
+    #
+    #     send_mail(
+    #         subject="Parolni tiklash",
+    #         message=f"Parolni tiklash uchun ushbu havolaga o‘ting: {reset_url}",
+    #         from_email=EMAIL_HOST_USER,
+    #         recipient_list=[email],
+    #     )
 
 
 class SPasswordResetConfirmSerializer(serializers.Serializer):

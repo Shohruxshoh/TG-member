@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
     'channels',
-    # 'silk',
+    "django_celery_beat",
+    'silk',
 
     'users',
     'service',
@@ -68,7 +69,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'silk.middleware.SilkyMiddleware',
+    'silk.middleware.SilkyMiddleware',
     'core.middleware.JsonRequestLogMiddleware',
 ]
 
@@ -228,7 +229,16 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 20
+    'PAGE_SIZE': 20,
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '100/min',  # har bir login qilgan user uchun
+        'anon': '50/min',  # login qilmagan foydalanuvchi uchun
+    }
 }
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
@@ -247,7 +257,7 @@ SILKY_INTERCEPT_PERCENT = 100  # Devda hammasi
 
 TELEGRAM_API_ID = os.getenv('TELEGRAM_API_ID')
 TELEGRAM_API_HASH = os.getenv('TELEGRAM_API_HASH')
-TELEGRAM_SESSION_NAME = os.getenv('TELEGRAM_SESSION_NAME')
+TELEGRAM_SESSION_NAME = os.getenv("TELEGRAM_SESSION_NAME", "/app/tg_session")
 
 import os
 
@@ -292,7 +302,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [("redis", 6379)],  # local Redis server
+            "hosts": [("localhost", 6379)],  # local Redis server
         },
     },
 }
@@ -300,7 +310,7 @@ CHANNEL_LAYERS = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.environ.get("REDIS_URL", "redis://redis:6379/0"),
+        "LOCATION": os.getenv("REDIS_URL1", "redis://localhost:6379/0"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
@@ -308,6 +318,25 @@ CACHES = {
         "TIMEOUT": 60 * 60,  # 1 soat
     }
 }
+
+CELERY_BROKER_URL = os.getenv("REDIS_URL")
+CELERY_RESULT_BACKEND = os.getenv("REDIS_URL")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Asia/Tashkent"
+
+
+import os
+import firebase_admin
+from firebase_admin import credentials
+
+FIREBASE_CRED_PATH = os.path.join(BASE_DIR, "firebase.json")
+
+if not firebase_admin._apps:  # qayta init bo‘lmasligi uchun
+    cred = credentials.Certificate(FIREBASE_CRED_PATH)
+    firebase_admin.initialize_app(cred)
+
 
 # Security
 # SECURE_BROWSER_XSS_FILTER = True
