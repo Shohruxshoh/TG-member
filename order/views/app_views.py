@@ -502,7 +502,17 @@ from django.db.models import Exists, OuterRef
             style='form',
             explode=True,
             description="Telegram ID lar ro'yxati (?telegram_id=123&telegram_id=456)"
-        )
+        ),
+        # OpenApiParameter(
+        #     name="country_code",
+        #     type=str,
+        #     location=OpenApiParameter.QUERY,
+        #     required=False,
+        #     many=True,
+        #     style='form',
+        #     explode=True,
+        #     description="Country code lar ro'yxati (?country_code=uz&country_code=ru)"
+        # )
     ],
     responses={
         200: OpenApiResponse(response=SOrderLinkListSerializer),
@@ -521,6 +531,7 @@ class SOrderLinkListAPIView2(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         telegram_ids = self.request.query_params.getlist('telegram_id')
+        # country_codes = self.request.query_params.getlist('country_code')
 
         if not telegram_ids:
             return Order.objects.none()
@@ -547,10 +558,15 @@ class SOrderLinkListAPIView2(generics.ListAPIView):
             .select_related("parent")  # faqat kerakli FK
             .only("id", "link", "channel_name", "channel_id", "parent_id")
             .filter(is_active=True, status=Status.PROCESSING)
+            .order_by("-id")
             .annotate(has_recent_member=Exists(recent_members))
             .filter(has_recent_member=False)  # yani so‘nggi 3 kunda user member bo‘lmagan
             .values("id", "link", "channel_name", "channel_id")
         )
+        # if country_codes:
+        #     orders= orders.filter(country_code__in=country_codes)
+        #
+        # orders = orders.values("id", "link", "channel_name", "channel_id")
         # order = [Order(
         #     user=user,
         #     service_id=1,
@@ -568,4 +584,3 @@ class SOrderLinkListAPIView2(generics.ListAPIView):
         # test = [OrderMember(order_id=2, telegram_id=2, user_id=1, vip=3, member_duration=3) for _ in range(10000)]
         # OrderMember.objects.bulk_create(test)
         return orders
-

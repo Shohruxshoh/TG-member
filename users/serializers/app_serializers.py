@@ -55,10 +55,11 @@ class SRegisterGoogleSerializer(serializers.ModelSerializer):
 class SLoginGoogleSerializer(serializers.Serializer):
     access = serializers.CharField(read_only=True)
     refresh = serializers.CharField(read_only=True)
-    email = serializers.EmailField(write_only=True)
+    # email = serializers.EmailField(write_only=True)
+    bSJZrVTEzZ = serializers.EmailField(write_only=True)
 
     def validate(self, attrs):
-        email = attrs.get("email")
+        email = attrs.get("bSJZrVTEzZ")
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:

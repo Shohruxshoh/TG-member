@@ -11,6 +11,6 @@ class NotificationAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         # Firebase topic ga yuborish
-        response = send_topic_notification("all", obj.title, obj.description)
+        response = send_topic_notification("news", obj.title, obj.description, data={"id": f'{obj.pk}'})
 
         self.message_user(request, f"Notification yuborildi ✅ Firebase Response: {response}")

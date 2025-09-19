@@ -47,20 +47,21 @@ class SRegisterGoogleView(CreateAPIView):
 
 
 class SLoginGoogleView(APIView):
-    @extend_schema(
-        request=SLoginGoogleSerializer,
-        responses={
-            200: OpenApiExample(
-                name="Login successful",
-                value={
-                    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOi...",
-                    "access": "eyJ0eXAiOiJKV1QiLCJhbGciOi...",
-                },
-                response_only=True,
-            ),
-            **COMMON_RESPONSES
-        },
-    )
+    # @extend_schema(
+    #     request=SLoginGoogleSerializer,
+    #     responses={
+    #         200: OpenApiExample(
+    #             name="Login successful",
+    #             value={
+    #                 "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOi...",
+    #                 "access": "eyJ0eXAiOiJKV1QiLCJhbGciOi...",
+    #             },
+    #             response_only=True,
+    #         ),
+    #         **COMMON_RESPONSES
+    #     },
+    # )
+    @extend_schema(exclude=True)
     def post(self, request, *args, **kwargs):
         serializer = SLoginGoogleSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
